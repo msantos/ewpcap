@@ -86,7 +86,7 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 ewpcap_loop(void *arg)
 {
     EWPCAP_STATE *ep = arg;
-    EWPCAP_CB *cb = NULL;
+    EWPCAP_CB cb = {0};
     ErlNifEnv *env = NULL;
     int rv = 0;
 
@@ -95,14 +95,10 @@ ewpcap_loop(void *arg)
     if (env == NULL)
         goto ERR;
 
-    cb = calloc(1, sizeof(EWPCAP_CB));
-    if (cb == NULL)
-        goto ERR;
+    cb.env = env;
+    cb.state = ep;
 
-    cb->env = env;
-    cb->state = ep;
-
-    rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)cb);
+    rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)&cb);
 
     switch (rv) {
         case 0:
