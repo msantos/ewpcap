@@ -65,6 +65,9 @@ pcap_open_live(_,_,_,_) ->
 pcap_close(_) ->
     erlang:error(not_implemented).
 
+pcap_lookupdev() ->
+    erlang:error(not_implemented).
+
 pcap_loop(_) ->
     erlang:error(not_implemented).
 
@@ -79,6 +82,9 @@ open() ->
     open(<<>>, []).
 open(Dev) ->
     open(Dev, []).
+open(<<>>, Options) ->
+    {ok, Dev} = pcap_lookupdev(),
+    open(Dev, Options);
 open(Dev, Options) when is_list(Options) ->
     Snaplen = proplists:get_value(snaplen, Options, 16#ffff),
     Promisc = bool(proplists:get_value(promisc, Options, false)),

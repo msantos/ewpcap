@@ -231,7 +231,8 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
-    ep->p = pcap_open_live((device.size == 0 ? NULL : (char *)device.data),
+    /* "any" is a Linux only */
+    ep->p = pcap_open_live((device.size == 0 ? "any" : (char *)device.data),
             snaplen, promisc, to_ms, errbuf);
 
     if (ep->p == NULL)
@@ -263,6 +264,25 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ep->p = NULL;
 
     return atom_ok;
+}
+
+    static ERL_NIF_TERM
+nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    char *dev = NULL;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+
+    dev = pcap_lookupdev(errbuf);
+
+    if (dev == NULL)
+        return enif_make_tuple2(env,
+                atom_error,
+                enif_make_string(env, errbuf, ERL_NIF_LATIN1));
+
+    return enif_make_tuple2(env,
+            atom_ok,
+            enif_make_string(env, dev, ERL_NIF_LATIN1));
 }
 
     static ERL_NIF_TERM
@@ -364,6 +384,7 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_close", 1, nif_pcap_close},
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
+    {"pcap_lookupdev", 0, nif_pcap_lookupdev},
 };
 
 ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, NULL)
