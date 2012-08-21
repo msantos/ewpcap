@@ -53,10 +53,12 @@ static ERL_NIF_TERM atom_ok;
 static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_enomem;
 static ERL_NIF_TERM atom_packet;
+static ERL_NIF_TERM atom_ewpcap_error;
 
 void *ewpcap_loop(void *arg);
 void ewpcap_cleanup(ErlNifEnv *env, void *obj);
 void ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+void ewpcap_error(EWPCAP_CB *cb, char *msg);
 
 
     static int
@@ -73,6 +75,7 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_error = enif_make_atom(env, "error");
     atom_enomem = enif_make_atom(env, "enomem");
     atom_packet = enif_make_atom(env, "packet");
+    atom_ewpcap_error = enif_make_atom(env, "ewpcap_error");
 
     if ( (EWPCAP_RESOURCE = enif_open_resource_type(env, NULL,
             "ewpcap_resource", ewpcap_cleanup,
@@ -101,16 +104,17 @@ ewpcap_loop(void *arg)
     rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)&cb);
 
     switch (rv) {
-        case 0:
-        case -1:
         case -2:
+            /* break requested using pcap_breakloop */
+            break;
+        case -1:
+            ewpcap_error(&cb, pcap_geterr(ep->p));
             break;
 
         default:
+            /* XXX shouldn't reach this */
             break;
     }
-
-    (void)fprintf(stderr, "exiting loop:%d:%s\n", rv, pcap_geterr(ep->p));
 
 ERR:
     if (env)
@@ -143,7 +147,6 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     (void)memcpy(buf.data, bytes, buf.size);
 
     /* {packet, DatalinkType, Time, ActualLength, Packet} */
-    
     (void)enif_send(
         NULL,
         &ep->pid,
@@ -163,6 +166,34 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 
     enif_clear_env(env);
 }
+
+    void
+ewpcap_error(EWPCAP_CB *cb, char *msg)
+{
+    ErlNifEnv *env = NULL;
+    EWPCAP_STATE *ep = NULL;
+
+
+    env = cb->env;
+    ep = cb->state;
+
+    if (ep->p == NULL)
+        return;
+
+    /* {ewpcap_error, Error} */
+    (void)enif_send(
+        NULL,
+        &ep->pid,
+        env,
+        enif_make_tuple2(env,
+            atom_ewpcap_error,
+            enif_make_string(env, msg, ERL_NIF_LATIN1)
+        )
+    );
+
+    enif_clear_env(env);
+}
+
 
     static ERL_NIF_TERM
 nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
