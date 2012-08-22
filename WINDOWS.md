@@ -10,7 +10,7 @@ This document describes what tools are needed and how they should be set up to b
 
 * **Cygwin** is needed to get an usable console on Windows. The developer tools such as make and git should be included in the installation (it needs to be selected during the installation as it is not by default).
 
-* **Erland/OTP** the binary package for Windows is available. Version used: R15B01
+* **Erlang/OTP** the binary package for Windows is available. Version used: R15B01
 
 * **Git** is used for cloning rebar and ewpcap from Github.
 

@@ -29,6 +29,7 @@
 %% ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %% POSSIBILITY OF SUCH DAMAGE.
 -module(ewpcap).
+-include("ewpcap.hrl").
 
 -export([
     open/0, open/1, open/2,
@@ -92,32 +93,34 @@ open(Dev, Options) when is_list(Options) ->
 
     pcap_open_live(Dev, Snaplen, Promisc, To_ms).
 
-close(Res) ->
+close(#ewpcap_resource{res = Res}) ->
     pcap_close(Res).
 
 filter(Res, Filter) ->
     filter(Res, Filter, []).
 
-filter(Res, Filter, Options) when is_binary(Filter); is_list(Filter) ->
+filter(#ewpcap_resource{res = Res}, Filter, Options) when is_binary(Filter); is_list(Filter) ->
     Optimize = bool(proplists:get_value(optimize, Options, true)),
     Netmask = mask(proplists:get_value(netmask, Options, ?PCAP_NETMASK_UNKNOWN)),
 
     pcap_compile(Res, Filter, Optimize, Netmask).
 
-loop(Res) ->
+loop(#ewpcap_resource{res = Res}) ->
     pcap_loop(Res).
 
 read(Res) ->
     read(Res, infinity).
-read(_Res, Timeout) ->
+read(#ewpcap_resource{ref = Ref}, Timeout) ->
     receive
-        {packet, DatalinkType, Time, ActualLength, Packet} ->
-            {ok, {packet, DatalinkType, Time, ActualLength, Packet}}
+        {ewpcap, Ref, _DatalinkType, _Time, _ActualLength, Packet} ->
+            {ok, Packet};
+        {ewpcap_error, Ref, Error} ->
+            {error, Error}
     after
         Timeout -> {error, eagain}
     end.
 
-write(Res, Data) when is_list(Data); is_binary(Data) ->
+write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
 
 

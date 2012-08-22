@@ -25,13 +25,11 @@ ewpcap hasn't been heavily tested. It will probably segfault.
 
   On Ubuntu: sudo apt-get install libpcap-dev
 
-These libraries are not required but can be used with epcap\_compile:
+These libraries are not required but can be used with ewpcap:
 
 * pkt: https://github.com/msantos/pkt.git
 
-  Use pkt to map the datalinktype to a number:
-
-        pkt:dlt(en10mb)
+  Use pkt to decode/encode packets read from the network.
 
 * privileges
 
@@ -104,7 +102,9 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         Begin sniffing the network. Packets are returned as messages to
         the caller:
 
-            {packet, DatalinkType, Time, Length, Packet}
+            {ewpcap, Ref, DatalinkType, Time, Length, Packet}
+
+        Ref is a reference identifying the socket handle.
 
         The DataLinkType is an integer representing the link layer,
         e.g., ethernet, Linux cooked socket.
@@ -123,9 +123,10 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         Types   Socket = resource()
                 Timeout = uint() | infinity
-                Packet = packet()
+                Packet = binary()
 
-        Convenience function wrapping receive.
+        Convenience function wrapping receive, returning the packet
+        contents.
 
     write(Socket) -> ok | {error, pcap_error_string()}
 
@@ -159,9 +160,8 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
 * rename loop/1
 
-* should packet message contain a reference?
-
-* possible/necessary/safe for multiple ewpcap\_loop threads to be running?
-    * pcap\_breakloop affects all threads
-
 * ewpcap, epcap, epcap\_compile ... confusing!
+
+* pcap\_sendpacket may block
+
+* re-write as a port driver?

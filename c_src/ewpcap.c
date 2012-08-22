@@ -36,29 +36,27 @@
 #include "erl_driver.h"
 
 typedef struct _ewpcap_state {
+    ErlNifEnv *env;
     ErlNifPid pid;
     ErlNifTid tid;
+    ERL_NIF_TERM ref;
     pcap_t *p;
     int datalink;
 } EWPCAP_STATE;
-
-typedef struct _ewpcap_cb {
-    ErlNifEnv *env;
-    EWPCAP_STATE *state;
-} EWPCAP_CB;
 
 ErlNifResourceType *EWPCAP_RESOURCE;
 
 static ERL_NIF_TERM atom_ok;
 static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_enomem;
-static ERL_NIF_TERM atom_packet;
+static ERL_NIF_TERM atom_ewpcap;
+static ERL_NIF_TERM atom_ewpcap_resource;
 static ERL_NIF_TERM atom_ewpcap_error;
 
 void *ewpcap_loop(void *arg);
 void ewpcap_cleanup(ErlNifEnv *env, void *obj);
 void ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
-void ewpcap_error(EWPCAP_CB *cb, char *msg);
+void ewpcap_error(EWPCAP_STATE *ep, char *msg);
 
 
     static int
@@ -74,7 +72,8 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_ok = enif_make_atom(env, "ok");
     atom_error = enif_make_atom(env, "error");
     atom_enomem = enif_make_atom(env, "enomem");
-    atom_packet = enif_make_atom(env, "packet");
+    atom_ewpcap = enif_make_atom(env, "ewpcap");
+    atom_ewpcap_resource = enif_make_atom(env, "ewpcap_resource");
     atom_ewpcap_error = enif_make_atom(env, "ewpcap_error");
 
     if ( (EWPCAP_RESOURCE = enif_open_resource_type(env, NULL,
@@ -89,26 +88,17 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 ewpcap_loop(void *arg)
 {
     EWPCAP_STATE *ep = arg;
-    EWPCAP_CB cb = {0};
-    ErlNifEnv *env = NULL;
     int rv = 0;
 
 
-    env = enif_alloc_env();
-    if (env == NULL)
-        goto ERR;
-
-    cb.env = env;
-    cb.state = ep;
-
-    rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)&cb);
+    rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
     switch (rv) {
         case -2:
             /* break requested using pcap_breakloop */
             break;
         case -1:
-            ewpcap_error(&cb, pcap_geterr(ep->p));
+            ewpcap_error(ep, pcap_geterr(ep->p));
             break;
 
         default:
@@ -116,9 +106,7 @@ ewpcap_loop(void *arg)
             break;
     }
 
-ERR:
-    if (env)
-        enif_free_env(env);
+    enif_free_env(ep->env);
 
     return NULL;
 }
@@ -126,18 +114,20 @@ ERR:
     void
 ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
-    EWPCAP_CB *cb = (EWPCAP_CB *)user;
-    ErlNifEnv *env = NULL;
-    EWPCAP_STATE *ep = NULL;
+    EWPCAP_STATE *ep = (EWPCAP_STATE *)user;
     ErlNifBinary buf = {0};
+    ErlNifEnv *env = NULL;
 
-
-    env = cb->env;
-    ep = cb->state;
 
     /* XXX no way to indicate an error? */
     if (ep->p == NULL)
         return;
+
+    env = enif_alloc_env();
+    if (env == NULL) {
+        pcap_breakloop(ep->p);
+        return;
+    }
 
     if (!enif_alloc_binary(h->caplen, &buf)) {
         pcap_breakloop(ep->p);
@@ -146,13 +136,14 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 
     (void)memcpy(buf.data, bytes, buf.size);
 
-    /* {packet, DatalinkType, Time, ActualLength, Packet} */
+    /* {ewpcap, Ref, DatalinkType, Time, ActualLength, Packet} */
     (void)enif_send(
         NULL,
         &ep->pid,
         env,
-        enif_make_tuple5(env,
-            atom_packet,
+        enif_make_tuple6(env,
+            atom_ewpcap,
+            enif_make_copy(env, ep->ref),
             enif_make_int(env, ep->datalink),
             enif_make_tuple3(env,
                 enif_make_ulong(env, abs(h->ts.tv_sec / 1000000)),
@@ -164,34 +155,36 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
         )
     );
 
-    enif_clear_env(env);
+    enif_free_env(env);
 }
 
     void
-ewpcap_error(EWPCAP_CB *cb, char *msg)
+ewpcap_error(EWPCAP_STATE *ep, char *msg)
 {
     ErlNifEnv *env = NULL;
-    EWPCAP_STATE *ep = NULL;
-
-
-    env = cb->env;
-    ep = cb->state;
 
     if (ep->p == NULL)
         return;
 
-    /* {ewpcap_error, Error} */
+    env = enif_alloc_env();
+    if (env == NULL) {
+        pcap_breakloop(ep->p);
+        return;
+    }
+
+    /* {ewpcap_error, Ref, Error} */
     (void)enif_send(
         NULL,
         &ep->pid,
         env,
-        enif_make_tuple2(env,
+        enif_make_tuple3(env,
             atom_ewpcap_error,
+            enif_make_copy(env, ep->ref),
             enif_make_string(env, msg, ERL_NIF_LATIN1)
         )
     );
 
-    enif_clear_env(env);
+    enif_free_env(env);
 }
 
 
@@ -206,6 +199,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     EWPCAP_STATE *ep = NULL;
     ERL_NIF_TERM res = {0};
+    ERL_NIF_TERM ref = {0};
 
 
     if (!enif_inspect_iolist_as_binary(env, argv[0], &device))
@@ -231,6 +225,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
+
     /* "any" is a Linux only */
     ep->p = pcap_open_live((device.size == 0 ? "any" : (char *)device.data),
             snaplen, promisc, to_ms, errbuf);
@@ -243,10 +238,24 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ep->datalink = pcap_datalink(ep->p);
     (void)enif_self(env, &ep->pid);
 
+    ep->env = enif_alloc_env();
+    if (ep->env == NULL) {
+        pcap_close(ep->p);
+        return enif_make_tuple2(env, atom_error, atom_enomem);
+    }
+
+    ep->ref = enif_make_ref(ep->env);
+    ref = enif_make_copy(env, ep->ref);
+
     res = enif_make_resource(env, ep);
     enif_release_resource(ep);
 
-    return enif_make_tuple2(env, atom_ok, res);
+    return enif_make_tuple2(env,
+            atom_ok,
+            enif_make_tuple3(env,
+                atom_ewpcap_resource,
+                ref,
+                res));
 }
 
     static ERL_NIF_TERM
