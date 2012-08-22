@@ -35,6 +35,10 @@
 #include "erl_nif.h"
 #include "erl_driver.h"
 
+#if defined(WIN32) || defined(__WIN32__) || defined(__WIN32)
+TWinDynDriverCallbacks WinDynDriverCallbacks;
+#endif
+
 typedef struct _ewpcap_state {
     ErlNifEnv *env;
     ErlNifEnv *term_env;
