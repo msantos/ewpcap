@@ -10,7 +10,7 @@ This document describes what tools are needed and how they should be set up to b
 
 * **Cygwin** is needed to get an usable console on Windows. The developer tools such as make and git should be included in the installation (it needs to be selected during the installation as it is not by default).
 
-* **Erlang/OTP** the binary package for Windows is available. Version used: R15B01
+* **Erlang/OTP**'s binary package for Windows is available. Version used: R15B01
 
 * **Git** is used for cloning rebar and ewpcap from Github.
 
@@ -68,4 +68,6 @@ It should be possible to build the project with the `make` command now.
 
 ### Using ewpcap
 
-* TODO
+The tricky part on Windows is getting the names of network interfaces. The `ipconfig` command does not show the names that can be used with ewpcap. The winpcap uses its own identifiers.
+
+* TODO - function for showing interface names
