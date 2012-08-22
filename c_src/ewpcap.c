@@ -117,6 +117,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     EWPCAP_STATE *ep = (EWPCAP_STATE *)user;
     ErlNifBinary buf = {0};
     ErlNifEnv *env = NULL;
+    int rv = 0;
 
 
     /* XXX no way to indicate an error? */
@@ -137,7 +138,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     (void)memcpy(buf.data, bytes, buf.size);
 
     /* {ewpcap, Ref, DatalinkType, Time, ActualLength, Packet} */
-    (void)enif_send(
+    rv = enif_send(
         NULL,
         &ep->pid,
         env,
@@ -155,6 +156,9 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
         )
     );
 
+    if (!rv)
+        pcap_breakloop(ep->p);
+
     enif_free_env(env);
 }
 
@@ -162,6 +166,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 ewpcap_error(EWPCAP_STATE *ep, char *msg)
 {
     ErlNifEnv *env = NULL;
+    int rv = 0;
 
     if (ep->p == NULL)
         return;
@@ -173,7 +178,7 @@ ewpcap_error(EWPCAP_STATE *ep, char *msg)
     }
 
     /* {ewpcap_error, Ref, Error} */
-    (void)enif_send(
+    rv = enif_send(
         NULL,
         &ep->pid,
         env,
@@ -183,6 +188,9 @@ ewpcap_error(EWPCAP_STATE *ep, char *msg)
             enif_make_string(env, msg, ERL_NIF_LATIN1)
         )
     );
+
+    if (!rv)
+        pcap_breakloop(ep->p);
 
     enif_free_env(env);
 }
