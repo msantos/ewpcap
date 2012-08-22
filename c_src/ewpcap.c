@@ -1,21 +1,21 @@
 /* Copyright (c) 2012, Michael Santos <michael.santos@gmail.com>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * Redistributions in binary form must reproduce the above copyright
  * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- * 
+ *
  * Neither the name of the author nor the names of its contributors
  * may be used to endorse or promote products derived from this software
  * without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -32,6 +32,13 @@
 #include <pcap.h>
 #include <string.h>
 #include <errno.h>
+
+/* sockaddr, PF_* */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "erl_nif.h"
 #include "erl_driver.h"
 
@@ -53,6 +60,15 @@ static ERL_NIF_TERM atom_enomem;
 static ERL_NIF_TERM atom_ewpcap;
 static ERL_NIF_TERM atom_ewpcap_resource;
 static ERL_NIF_TERM atom_ewpcap_error;
+
+/* pcap_findalldevices() */
+static ERL_NIF_TERM atom_description;
+static ERL_NIF_TERM atom_addr;
+static ERL_NIF_TERM atom_flag;
+static ERL_NIF_TERM atom_netmask;
+static ERL_NIF_TERM atom_broadaddr;
+static ERL_NIF_TERM atom_dstaddr;
+static ERL_NIF_TERM atom_loopback;
 
 void *ewpcap_loop(void *arg);
 void ewpcap_cleanup(ErlNifEnv *env, void *obj);
@@ -76,6 +92,14 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_ewpcap = enif_make_atom(env, "ewpcap");
     atom_ewpcap_resource = enif_make_atom(env, "ewpcap_resource");
     atom_ewpcap_error = enif_make_atom(env, "ewpcap_error");
+
+    atom_description = enif_make_atom(env, "description");
+    atom_addr = enif_make_atom(env, "addr");
+    atom_flag = enif_make_atom(env, "flag");
+    atom_netmask = enif_make_atom(env, "netmask");
+    atom_broadaddr = enif_make_atom(env, "broadaddr");
+    atom_dstaddr = enif_make_atom(env, "dstaddr");
+    atom_loopback = enif_make_atom(env, "loopback");
 
     if ( (EWPCAP_RESOURCE = enif_open_resource_type(env, NULL,
             "ewpcap_resource", ewpcap_cleanup,
@@ -296,6 +320,143 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             enif_make_string(env, dev, ERL_NIF_LATIN1));
 }
 
+#define MAKE_ADDR(env, attr, key, addrp) do { \
+    ErlNifBinary buf = {0}; \
+    struct sockaddr *saddr = addrp->key; \
+ \
+    if (saddr == NULL) \
+        break; \
+ \
+    switch (addrp->addr->sa_family) { \
+        case PF_INET: { \
+            struct sockaddr_in *sin = (struct sockaddr_in *)saddr; \
+ \
+            if (!enif_alloc_binary(sizeof(sin->sin_addr.s_addr), &buf)) \
+                goto ERR; \
+ \
+            (void)memcpy(buf.data, &(sin->sin_addr.s_addr), buf.size); \
+        } \
+        break; \
+        case PF_INET6: { \
+            struct sockaddr_in6 *sin = (struct sockaddr_in6 *)saddr; \
+ \
+            if (!enif_alloc_binary(sizeof(sin->sin6_addr), &buf)) \
+                goto ERR; \
+ \
+            (void)memcpy(buf.data, &(sin->sin6_addr), buf.size); \
+        } \
+        break; \
+    } \
+ \
+    attr = enif_make_list_cell(env, \
+        enif_make_tuple2(env, \
+            atom_##key, \
+            enif_make_binary(env, &buf)), \
+        attr); \
+ \
+} while (0)
+
+    static ERL_NIF_TERM
+nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    pcap_if_t *alldevsp = NULL;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    ERL_NIF_TERM dev = {0};
+
+
+    if (pcap_findalldevs(&alldevsp, errbuf) < 0)
+        return enif_make_tuple2(env,
+                atom_error,
+                enif_make_string(env, errbuf, ERL_NIF_LATIN1));
+
+
+    dev = enif_make_list(env, 0);
+
+    /* similar to inet:getifaddrs/0, except return binaries
+     * for addresses:
+     *  [{"lo", [
+     *      {description, "..."},
+     *      {flag, [loopback]},
+     *      {address, <<>>},
+     *      {netmask, <<>>},
+     *      {broaddr, <<>>},
+     *      {dstaddr, <<>>}
+     *      ]}]
+     */
+    for ( ; alldevsp != NULL; alldevsp = alldevsp->next) {
+        ERL_NIF_TERM attr = {0};
+        ERL_NIF_TERM flags = {0};
+        pcap_addr_t *sa = NULL;
+
+        /* interface attributes */
+        attr = enif_make_list(env, 0);
+
+        /* interface flags */
+        flags = enif_make_list(env, 0);
+
+        if (alldevsp->description)
+            attr = enif_make_list_cell(env,
+                enif_make_tuple2(env,
+                    atom_description,
+                    enif_make_string(env, alldevsp->description, ERL_NIF_LATIN1)),
+                attr);
+
+        if (alldevsp->flags & PCAP_IF_LOOPBACK) {
+            flags = enif_make_list_cell(env, atom_loopback, flags);
+
+            attr = enif_make_list_cell(env,
+                enif_make_tuple2(env, atom_flag, flags), attr);
+        }
+
+        for (sa = alldevsp->addresses; sa != NULL; sa = sa->next) {
+            if (sa->addr == NULL)
+            continue;
+
+            switch (sa->addr->sa_family) {
+            case PF_INET:
+            case PF_INET6:
+                break;
+            default:
+                /* unsupported */
+                continue;
+            }
+
+            /* address */
+            MAKE_ADDR(env, attr, addr, sa);
+
+            /* netmask */
+            MAKE_ADDR(env, attr, netmask, sa);
+
+            /* broadaddr */
+            MAKE_ADDR(env, attr, broadaddr, sa);
+
+            /* dstaddr */
+            MAKE_ADDR(env, attr, dstaddr, sa);
+        }
+
+        dev = enif_make_list_cell(env,
+            enif_make_tuple2(env,
+                enif_make_string(env, alldevsp->name, ERL_NIF_LATIN1),
+                attr),
+            dev);
+    }
+
+    pcap_freealldevs(alldevsp);
+
+    return enif_make_tuple2(env,
+            atom_ok,
+            dev);
+
+ERR:
+    pcap_freealldevs(alldevsp);
+
+    /* MAKE_ADDR macro */
+    return enif_make_tuple2(env,
+            atom_error,
+            atom_enomem);
+}
+
     static ERL_NIF_TERM
 nif_pcap_loop(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -396,6 +557,7 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs}
 };
 
 ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, NULL)

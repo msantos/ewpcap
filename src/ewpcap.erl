@@ -37,7 +37,8 @@
     filter/2, filter/3,
     loop/1,
     read/1, read/2,
-    write/2
+    write/2,
+    getifaddrs/0
     ]).
 
 -define(PCAP_NETMASK_UNKNOWN, 16#ffffffff).
@@ -67,6 +68,9 @@ pcap_close(_) ->
     erlang:error(not_implemented).
 
 pcap_lookupdev() ->
+    erlang:error(not_implemented).
+
+pcap_findalldevs() ->
     erlang:error(not_implemented).
 
 pcap_loop(_) ->
@@ -123,6 +127,27 @@ read(#ewpcap_resource{ref = Ref}, Timeout) ->
 write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
 
+getifaddrs() ->
+    case pcap_findalldevs() of
+        {ok, Iflist} ->
+            {ok, [ iface(N) || N <- Iflist ]};
+        Error ->
+            Error
+    end.
+
+iface({If, Attr}) ->
+    {If, addr(Attr)}.
+
+addr(Attr) ->
+    addr(Attr, []).
+addr([], Attr) ->
+    Attr;
+addr([{Key, <<A,B,C,D>>}|T], Attr) ->
+    addr(T, [{Key, {A,B,C,D}}|Attr]);
+addr([{Key, <<A:16,B:16,C:16,D:16,E:16,F:16,G:16,H:16>>}|T], Attr) ->
+    addr(T, [{Key, {A,B,C,D,E,F,G,H}}|Attr]);
+addr([N|T], Attr) ->
+    addr(T, [N|Attr]).
 
 %%--------------------------------------------------------------------
 %%% Internal functions

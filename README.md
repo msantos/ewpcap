@@ -134,6 +134,32 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         Write the packet to the network. See pcap_sendpacket(3PCAP).
 
+    getifaddrs() -> {ok, Iflist} | {error, posix()}
+
+        Types   Iflist = [{Ifname, [Ifopt]}]
+                Ifname = string()
+                Ifopt = {flag, [Flag]}
+                    | {addr, Addr}
+                    | {netmask, Netmask}
+                    | {broadaddr, Broadaddr}
+                    | {dstaddr, Dstaddr}
+                    | {description, string()}
+                Flag = loopback
+                Addr = Netmask = Broadaddr = Dstaddr = ip_address()
+
+        Returns a list of interfaces. Ifname can be used as the first
+        parameter to open/1 and open/2.
+
+        This function is modelled on inet:getifaddrs/0 but uses
+        pcap_findalldevs(3PCAP) to look up the interface attributes:
+
+            * getifaddrs/0 may return pseudo devices, such as the "any"
+              device on Linux
+
+            * getifaddrs/0 will only return the list of devices that
+              can be used with open/1 and open/2. An empty list ({ok,
+              []}) may be returned if the user does not have permission
+              to open any of the system interfaces
 
 ## EXAMPLES
 
@@ -151,8 +177,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
             resend(Socket).
 
         resend(Socket) ->
-            {ok, {packet, _DatalinkType, _Time, _Length, Packet}} = 
-                ewpcap:read(Socket),
+            {ok, Packet} = ewpcap:read(Socket),
             ok = ewpcap:write(Socket, Packet),
             resend(Socket).
 
