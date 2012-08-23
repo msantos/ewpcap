@@ -34,10 +34,14 @@
 #include <errno.h>
 
 /* sockaddr, PF_* */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#if defined(WIN32) || defined(__WIN32__) || defined(__WIN32)
+# include <Winsock2.h>
+#else
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
+#endif
 
 #include "erl_nif.h"
 #include "erl_driver.h"
