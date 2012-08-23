@@ -138,6 +138,10 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         Write the packet to the network. See pcap_sendpacket(3PCAP).
 
+    dev() -> {ok, string()} | {error, pcap_error_string()}
+
+        Returns the default device used by PCAP.
+
     getifaddrs() -> {ok, Iflist} | {error, posix()}
 
         Types   Iflist = [{Ifname, [Ifopt]}]

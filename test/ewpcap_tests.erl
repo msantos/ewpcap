@@ -35,6 +35,29 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("ewpcap.hrl").
 
+open_test() ->
+    case ewpcap:getifaddrs() of
+        {ok, []} ->
+            error_logger:info_report([
+                {skipping, "beam does not have privileges to run test"}
+            ]),
+            ok;
+        {ok, _Iflist} ->
+            open_test_1()
+    end.
+
+open_test_1() ->
+    {ok, Ifname} = ewpcap:dev(),
+    {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"}]),
+
+    {error, eagain} = ewpcap:read(Socket, 100),
+    gen_tcp:connect({8,8,8,8}, 29, [binary], 100),
+    {ok, Packet} = ewpcap:read(Socket),
+
+    error_logger:info_report([{got, Packet}]),
+
+    ok.
+
 getifaddrs_test() ->
     case os:type() of
         {unix, _} ->

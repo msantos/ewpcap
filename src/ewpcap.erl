@@ -37,7 +37,7 @@
     filter/2, filter/3,
     read/1, read/2,
     write/2,
-    getifaddrs/0
+    getifaddrs/0, dev/0
     ]).
 
 -define(PCAP_NETMASK_UNKNOWN, 16#ffffffff).
@@ -147,6 +147,9 @@ read(#ewpcap_resource{ref = Ref}, Timeout) ->
 
 write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
+
+dev() ->
+    pcap_lookupdev().
 
 getifaddrs() ->
     case pcap_findalldevs() of
