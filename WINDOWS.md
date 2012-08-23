@@ -70,4 +70,4 @@ It should be possible to build the project with the `make` command now.
 
 The tricky part on Windows is getting the names of network interfaces. The `ipconfig` command does not show the names that can be used with ewpcap. The winpcap uses its own identifiers.
 
-* TODO - function for showing interface names
+Use ewpcap:getifaddrs/0 to get a list of device names that can be passed to open/1 and open/2.
