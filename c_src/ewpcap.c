@@ -303,7 +303,6 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     pcap_breakloop(ep->p);
     pcap_close(ep->p);
-    /* XXX safe? pcap_loop may still be running */
     ep->p = NULL;
 
     return atom_ok;

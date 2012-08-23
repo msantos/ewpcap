@@ -35,7 +35,6 @@
     open/0, open/1, open/2,
     close/1,
     filter/2, filter/3,
-    loop/1,
     read/1, read/2,
     write/2,
     getifaddrs/0
@@ -94,8 +93,30 @@ open(Dev, Options) when is_list(Options) ->
     Snaplen = proplists:get_value(snaplen, Options, 16#ffff),
     Promisc = bool(proplists:get_value(promisc, Options, false)),
     To_ms = proplists:get_value(to_ms, Options, 500),
+    Filter = proplists:get_value(filter, Options, <<>>),
 
-    pcap_open_live(Dev, Snaplen, Promisc, To_ms).
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms) of
+        {ok, Socket} ->
+            open_1(Socket, Options, Filter);
+        Error ->
+            Error
+    end.
+
+open_1(Socket, _Options, <<>>) ->
+    open_2(Socket);
+open_1(Socket, Options, Filter) ->
+    case filter(Socket, Filter, Options) of
+        ok ->
+            open_2(Socket);
+        Error ->
+            Error
+    end.
+
+open_2(Socket) ->
+    case loop(Socket) of
+        ok -> {ok, Socket};
+        Error -> Error
+    end.
 
 close(#ewpcap_resource{res = Res}) ->
     pcap_close(Res).

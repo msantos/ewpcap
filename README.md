@@ -66,6 +66,10 @@ SMP erlang must be enabled (erl -smp -pa ebin).
                 Option = {promisc, boolean()}
                     | {snaplen, integer()}
                     | {to_ms, integer()}
+                    | {filter, binary() | string()}
+                    | FilterOpts
+
+        Open a network interface and begin receiving packets.
 
         Dev is the name of the network device. If an empty binary (<<>>)
         is passed in, pcap will select a default interface.
@@ -73,7 +77,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         If an error occurs, the PCAP string describing the error is
         returned to the caller.
 
-        open/1 and open/2 defaults to:
+        open/1 and open/2 default to:
 
             * promiscuous mode disabled
 
@@ -81,26 +85,11 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
             * timeout set to 500 ms
 
-    close(Socket) -> ok
+            * no filter (all packets are received)
 
-        Closes the pcap descriptor.
+        For filter options, see filter/3.
 
-    filter(Socket, Filter, Options) -> ok | {error, Error}
-
-        Types   Socket = resource()
-                Error = enomem | pcap_error_string()
-                Options = [ Option ]
-                Option = {optimize, boolean()}
-                    | {netmask, integer()}
-
-        Compile a PCAP filter and apply it to the PCAP descriptor.
-
-    loop(Socket) -> ok | {error, posix()}
-
-        Types   Socket = resource()
-
-        Begin sniffing the network. Packets are returned as messages to
-        the caller:
+        Packets are returned as messages to the caller:
 
             {ewpcap, Ref, DatalinkType, Time, Length, Packet}
 
@@ -117,6 +106,21 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         captured packet length, use byte_size(Packet).
 
         The Packet is a binary holding the captured data.
+
+    close(Socket) -> ok
+
+        Closes the pcap descriptor.
+
+    filter(Socket, Filter) -> ok | {error, Error}
+    filter(Socket, Filter, Options) -> ok | {error, Error}
+
+        Types   Socket = resource()
+                Error = enomem | pcap_error_string()
+                Options = [ Option ]
+                Option = {optimize, boolean()}
+                    | {netmask, integer()}
+
+        Compile a PCAP filter and apply it to the PCAP descriptor.
 
     read(Socket) -> {ok, Packet}
     read(Socket, Timeout) -> {ok, Packet} | {error, eagain}
@@ -168,12 +172,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         % icmp_resend:start("eth0").
         start(Dev) ->
-            {ok, Socket} = ewpcap:open(Dev),
-            ok = ewpcap:filter(Socket, "icmp"),
-
-            % begin reading from the network
-            ok = ewpcap:loop(Socket),
-
+            {ok, Socket} = ewpcap:open(Dev, [{filter, "icmp"}]),
             resend(Socket).
 
         resend(Socket) ->
@@ -183,10 +182,10 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
 ## TODO
 
-* rename loop/1
-
 * ewpcap, epcap, epcap\_compile ... confusing!
 
 * pcap\_sendpacket may block
+
+* pcap\_findalldevices blocks
 
 * re-write as a port driver?
