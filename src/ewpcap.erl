@@ -154,7 +154,7 @@ dev() ->
 getifaddrs() ->
     case pcap_findalldevs() of
         {ok, Iflist} ->
-            {ok, [ iface(N) || N <- Iflist ]};
+            {ok, [ iface(N) || N <- lists:reverse(Iflist) ]};
         Error ->
             Error
     end.
