@@ -312,7 +312,7 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     char *dev = NULL;
-    char errbuf[PCAP_ERRBUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
 
     dev = pcap_lookupdev(errbuf);
@@ -367,7 +367,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     pcap_if_t *alldevsp = NULL;
-    char errbuf[PCAP_ERRBUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
     ERL_NIF_TERM dev = {0};
 
