@@ -135,11 +135,11 @@ ewpcap_loop(void *arg)
             /* break requested using pcap_breakloop */
             break;
         case -1:
-            ewpcap_error(ep, pcap_geterr(ep->p));
+            /* pcap_loop error: the pcap handle may not be valid at this
+               point, so we do not return an error */
             break;
 
         default:
-            /* XXX shouldn't reach this */
             break;
     }
 
@@ -260,7 +260,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
 
-    /* "any" is a Linux only */
+    /* "any" is a Linux only virtual dev */
     ep->p = pcap_open_live((device.size == 0 ? "any" : (char *)device.data),
             snaplen, promisc, to_ms, errbuf);
 
