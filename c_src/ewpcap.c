@@ -143,11 +143,7 @@ ewpcap_loop(void *arg)
             break;
     }
 
-    enif_free_env(ep->env);
-
 ERR:
-    enif_free_env(ep->term_env);
-
     return NULL;
 }
 
@@ -553,6 +549,8 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
     pcap_breakloop(ep->p);
     pcap_close(ep->p);
+    enif_free_env(ep->env);
+    enif_free_env(ep->term_env);
     (void)memset(ep, 0, sizeof(EWPCAP_STATE));
 }
 
