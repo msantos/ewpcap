@@ -144,6 +144,7 @@ ewpcap_loop(void *arg)
     }
 
 ERR:
+    /* env is freed in resource cleanup */
     return NULL;
 }
 
@@ -549,8 +550,13 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
     pcap_breakloop(ep->p);
     pcap_close(ep->p);
-    enif_free_env(ep->env);
-    enif_free_env(ep->term_env);
+
+    if (ep->env)
+        enif_free_env(ep->env);
+
+    if (ep->term_env)
+        enif_free_env(ep->term_env);
+
     (void)memset(ep, 0, sizeof(EWPCAP_STATE));
 }
 
