@@ -58,25 +58,25 @@ on_load() ->
         end.
 
 pcap_compile(_,_,_,_) ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_open_live(_,_,_,_) ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_close(_) ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_lookupdev() ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_findalldevs() ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_loop(_) ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 pcap_sendpacket(_,_) ->
-    erlang:error(not_implemented).
+    erlang:nif_error(not_implemented).
 
 
 %%--------------------------------------------------------------------
