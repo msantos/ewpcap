@@ -1,13 +1,13 @@
 ewpcap is a native Erlang interface to PCAP that can be used for reading
 and writing packets from the network.
 
-ewpcap is an experiment, meant to be a portable raw socket interface to
-all the platforms that support Erlang and libpcap.
+ewpcap is meant to be a portable raw socket interface to all the platforms
+that support Erlang and libpcap.
 
 ## WARNING
 
 ewpcap was written and tested under Linux. But if you are using a
-Unix system, it is much safer to use one of these projects:
+Unix system, you may want to use one of these projects instead:
 
 * procket : https://github.com/msantos/procket
 
@@ -16,7 +16,7 @@ Unix system, it is much safer to use one of these projects:
 The ewpcap interface will still go through some changes. For example,
 the function names may change as may the packet tuple.
 
-ewpcap hasn't been heavily tested. It will probably segfault.
+ewpcap hasn't been heavily tested.
 
 
 ## REQUIREMENTS
@@ -191,5 +191,3 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 * pcap\_sendpacket may block
 
 * pcap\_findalldevices blocks
-
-* re-write as a port driver?
