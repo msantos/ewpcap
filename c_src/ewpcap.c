@@ -80,7 +80,8 @@ static ERL_NIF_TERM atom_loopback;
 
 void *ewpcap_loop(void *arg);
 void ewpcap_cleanup(ErlNifEnv *env, void *obj);
-void ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+void ewpcap_send(u_char *user, const struct pcap_pkthdr *h,
+        const u_char *bytes);
 void ewpcap_error(EWPCAP_STATE *ep, char *msg);
 
 
@@ -295,7 +296,8 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     EWPCAP_STATE *ep = NULL;
 
 
-    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep) || ep->p == NULL)
+    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
+            || ep->p == NULL)
         return enif_make_badarg(env);
 
     pcap_breakloop(ep->p);
@@ -403,7 +405,8 @@ nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             attr = enif_make_list_cell(env,
                 enif_make_tuple2(env,
                     atom_description,
-                    enif_make_string(env, alldevsp->description, ERL_NIF_LATIN1)),
+                    enif_make_string(env, alldevsp->description,
+                        ERL_NIF_LATIN1)),
                 attr);
 
         if (alldevsp->flags & PCAP_IF_LOOPBACK) {
@@ -467,7 +470,8 @@ nif_pcap_loop(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     EWPCAP_STATE *ep = NULL;
 
 
-    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep) || ep->p == NULL)
+    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
+            || ep->p == NULL)
         return enif_make_badarg(env);
 
     if (enif_thread_create("ewpcap_loop", &ep->tid, ewpcap_loop, ep, NULL) != 0)
@@ -487,7 +491,8 @@ nif_pcap_compile(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     struct bpf_program fp = {0};
 
 
-    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep) || ep->p == NULL)
+    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
+            || ep->p == NULL)
         return enif_make_badarg(env);
 
     if (!enif_inspect_iolist_as_binary(env, argv[1], &filter))
@@ -526,7 +531,8 @@ nif_pcap_sendpacket(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ErlNifBinary buf = {0};
 
 
-    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep) || ep->p == NULL)
+    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
+            || ep->p == NULL)
         return enif_make_badarg(env);
 
     if (!enif_inspect_iolist_as_binary(env, argv[1], &buf))

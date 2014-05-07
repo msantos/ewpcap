@@ -55,7 +55,7 @@ on_load() ->
             erlang:load_nif(progname(), []);
         false ->
             {error, "Requires smp support (-smp enable)"}
-        end.
+    end.
 
 pcap_compile(_,_,_,_) ->
     erlang:nif_error(not_implemented).
@@ -90,7 +90,7 @@ open(<<>>, Options) ->
     case pcap_lookupdev() of
         {ok, Dev} -> open(Dev, Options);
         Error -> Error
-    end.
+    end;
 open(Dev, Options) when is_list(Options) ->
     Snaplen = proplists:get_value(snaplen, Options, 16#ffff),
     Promisc = bool(proplists:get_value(promisc, Options, false)),
