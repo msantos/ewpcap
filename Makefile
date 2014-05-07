@@ -1,4 +1,5 @@
 REBAR=$(shell which rebar || echo ./rebar)
+DEPSOLVER_PLT=$(CURDIR)/.depsolver_plt
 
 all: compile
 
@@ -14,5 +15,21 @@ compile: $(REBAR)
 clean: $(REBAR)
 	@$(REBAR) clean
 
-test: $(REBAR) compile
-	@$(REBAR) eunit
+test: compile
+	@$(REBAR) eunit recursive=false
+
+.PHONY: test dialyzer typer clean distclean
+
+$(DEPSOLVER_PLT):
+	@dialyzer --output_plt $(DEPSOLVER_PLT) --build_plt \
+		--apps erts kernel stdlib crypto
+
+dialyzer: $(DEPSOLVER_PLT)
+	@dialyzer -I include --plt $(DEPSOLVER_PLT) -Wrace_conditions \
+		--src src test
+
+typer: $(DEPSOLVER_PLT)
+	@typer -I include --plt $(DEPSOLVER_PLT) -r ./src
+
+distclean: clean
+	@rm $(DEPSOLVER_PLT)
