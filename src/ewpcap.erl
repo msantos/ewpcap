@@ -61,7 +61,7 @@ on_load() ->
 pcap_compile(_,_,_,_) ->
     erlang:nif_error(not_implemented).
 
-pcap_open_live(_,_,_,_) ->
+pcap_open_live(_,_,_,_,_) ->
     erlang:nif_error(not_implemented).
 
 pcap_close(_) ->
@@ -100,8 +100,9 @@ open(Dev, Options) when is_list(Options) ->
     Promisc = bool(proplists:get_value(promisc, Options, false)),
     To_ms = proplists:get_value(to_ms, Options, 500),
     Filter = proplists:get_value(filter, Options, <<>>),
+    Bufsz = proplists:get_value(buffer, Options, 0),
 
-    case pcap_open_live(Dev, Snaplen, Promisc, To_ms) of
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Bufsz) of
         {ok, Socket} ->
             open_1(Socket, Options, Filter);
         Error ->

@@ -229,6 +229,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     int snaplen = 0;
     int promisc = 0;
     int to_ms = 0;
+    int buffer_size = 0;
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
     EWPCAP_STATE *ep = NULL;
@@ -248,6 +249,9 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (!enif_get_int(env, argv[3], &to_ms))
         return enif_make_badarg(env);
 
+    if (!enif_get_int(env, argv[4], &buffer_size))
+        return enif_make_badarg(env);
+
     /* NULL terminate the device name */
     if (device.size > 0 && !enif_realloc_binary(&device, device.size+1))
         return enif_make_tuple2(env, atom_error, atom_enomem);
@@ -259,15 +263,35 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
-
     /* "any" is a Linux only virtual dev */
-    ep->p = pcap_open_live((device.size == 0 ? "any" : (char *)device.data),
-            snaplen, promisc, to_ms, errbuf);
+    ep->p = pcap_create((device.size == 0 ? "any" : (char *)device.data),
+            errbuf);
 
     if (ep->p == NULL)
         return enif_make_tuple2(env,
                 atom_error,
                 enif_make_string(env, errbuf, ERL_NIF_LATIN1));
+
+    /* Set the snaplen */
+    (void)pcap_set_snaplen(ep->p, snaplen);
+
+    /* Set promiscuous mode */
+    (void)pcap_set_promisc(ep->p, promisc);
+
+    /* Set timeout */
+    (void)pcap_set_timeout(ep->p, to_ms);
+
+    /* Set buffer size */
+    if (buffer_size > 0)
+        (void)pcap_set_buffer_size(ep->p, buffer_size);
+
+    /* Return failure on error and warnings */
+    if (pcap_activate(ep->p) != 0) {
+        pcap_close(ep->p);
+        return enif_make_tuple2(env,
+                atom_error,
+                enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
+    }
 
     ep->datalink = pcap_datalink(ep->p);
     (void)enif_self(env, &ep->pid);
@@ -601,7 +625,7 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
-    {"pcap_open_live", 4, nif_pcap_open_live},
+    {"pcap_open_live", 5, nif_pcap_open_live},
     {"pcap_close", 1, nif_pcap_close},
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},

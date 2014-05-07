@@ -66,6 +66,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
                 Option = {promisc, boolean()}
                     | {snaplen, integer()}
                     | {to_ms, integer()}
+                    | {buffer, integer()}
                     | {filter, binary() | string()}
                     | FilterOpts
 
@@ -86,6 +87,9 @@ SMP erlang must be enabled (erl -smp -pa ebin).
             * timeout set to 500 ms
 
             * no filter (all packets are received)
+
+        If ewpcap is dropping packets (see stats/1), the PCAP buffer
+        size can be increased (should be some multiple of the snaplen).
 
         For filter options, see filter/3.
 
