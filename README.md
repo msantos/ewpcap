@@ -169,7 +169,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
               []}) may be returned if the user does not have permission
               to open any of the system interfaces
 
-    stats(Socket) -> {ok, #pcap_stat{}} | {error, pcap_error_string()}
+    stats(Socket) -> {ok, #ewpcap_stat{}} | {error, pcap_error_string()}
 
         Types   Socket = resource()
 
@@ -180,7 +180,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         stats/1 returns statistics about dropped packets. See
         pcap_stats(3PCAP) for details.
 
-        The pcap_stats records contains these fields:
+        The ewpcap_stat records contains these fields:
 
             recv : number of packets received
 

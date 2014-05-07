@@ -43,7 +43,7 @@
         res
         }).
 
--record(pcap_stat, {
+-record(ewpcap_stat, {
         recv,       % number of packets received
         drop,       % number of packets dropped
         ifdrop,     % number of packets dropped by interface

@@ -68,7 +68,7 @@ static ERL_NIF_TERM atom_enomem;
 static ERL_NIF_TERM atom_ewpcap;
 static ERL_NIF_TERM atom_ewpcap_resource;
 static ERL_NIF_TERM atom_ewpcap_error;
-static ERL_NIF_TERM atom_pcap_stat;
+static ERL_NIF_TERM atom_ewpcap_stat;
 
 /* pcap_findalldevices() */
 static ERL_NIF_TERM atom_description;
@@ -102,7 +102,7 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_ewpcap = enif_make_atom(env, "ewpcap");
     atom_ewpcap_resource = enif_make_atom(env, "ewpcap_resource");
     atom_ewpcap_error = enif_make_atom(env, "ewpcap_error");
-    atom_pcap_stat = enif_make_atom(env, "pcap_stat");
+    atom_ewpcap_stat = enif_make_atom(env, "ewpcap_stat");
 
     atom_description = enif_make_atom(env, "description");
     atom_addr = enif_make_atom(env, "addr");
@@ -566,7 +566,7 @@ nif_pcap_stats(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return enif_make_tuple2(env,
             atom_ok,
             enif_make_tuple5(env,
-                atom_pcap_stat,
+                atom_ewpcap_stat,
                 enif_make_uint(env, ps.ps_recv),
                 enif_make_uint(env, ps.ps_drop),
                 enif_make_uint(env, ps.ps_ifdrop),
