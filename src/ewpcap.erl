@@ -37,7 +37,8 @@
     filter/2, filter/3,
     read/1, read/2,
     write/2,
-    getifaddrs/0, dev/0
+    getifaddrs/0, dev/0,
+    stats/1
     ]).
 
 -define(PCAP_NETMASK_UNKNOWN, 16#ffffffff).
@@ -76,6 +77,9 @@ pcap_loop(_) ->
     erlang:nif_error(not_implemented).
 
 pcap_sendpacket(_,_) ->
+    erlang:nif_error(not_implemented).
+
+pcap_stats(_) ->
     erlang:nif_error(not_implemented).
 
 
@@ -160,6 +164,9 @@ getifaddrs() ->
         Error ->
             Error
     end.
+
+stats(#ewpcap_resource{res = Res}) ->
+    pcap_stats(Res).
 
 iface({If, Attr}) ->
     {If, addr(Attr)}.

@@ -68,6 +68,7 @@ static ERL_NIF_TERM atom_enomem;
 static ERL_NIF_TERM atom_ewpcap;
 static ERL_NIF_TERM atom_ewpcap_resource;
 static ERL_NIF_TERM atom_ewpcap_error;
+static ERL_NIF_TERM atom_pcap_stat;
 
 /* pcap_findalldevices() */
 static ERL_NIF_TERM atom_description;
@@ -101,6 +102,7 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_ewpcap = enif_make_atom(env, "ewpcap");
     atom_ewpcap_resource = enif_make_atom(env, "ewpcap_resource");
     atom_ewpcap_error = enif_make_atom(env, "ewpcap_error");
+    atom_pcap_stat = enif_make_atom(env, "pcap_stat");
 
     atom_description = enif_make_atom(env, "description");
     atom_addr = enif_make_atom(env, "addr");
@@ -546,6 +548,36 @@ nif_pcap_sendpacket(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return atom_ok;
 }
 
+    static ERL_NIF_TERM
+nif_pcap_stats(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    EWPCAP_STATE *ep = NULL;
+    struct pcap_stat ps = {0};
+
+    if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
+            || ep->p == NULL)
+        return enif_make_badarg(env);
+
+    if (pcap_stats(ep->p, &ps))
+        return enif_make_tuple2(env,
+                atom_error,
+                enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
+
+    return enif_make_tuple2(env,
+            atom_ok,
+            enif_make_tuple5(env,
+                atom_pcap_stat,
+                enif_make_uint(env, ps.ps_recv),
+                enif_make_uint(env, ps.ps_drop),
+                enif_make_uint(env, ps.ps_ifdrop),
+#ifdef WIN32
+                enif_make_uint(env, ps.bs_capt)
+#else
+                enif_make_uint(env, 0)
+#endif
+                ));
+}
+
     void
 ewpcap_cleanup(ErlNifEnv *env, void *obj)
 {
@@ -574,7 +606,8 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},
-    {"pcap_findalldevs", 0, nif_pcap_findalldevs}
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs},
+    {"pcap_stats", 1, nif_pcap_stats}
 };
 
 ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, NULL)

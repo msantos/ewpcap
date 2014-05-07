@@ -169,6 +169,27 @@ SMP erlang must be enabled (erl -smp -pa ebin).
               []}) may be returned if the user does not have permission
               to open any of the system interfaces
 
+    stats(Socket) -> {ok, #pcap_stat{}} | {error, pcap_error_string()}
+
+        Types   Socket = resource()
+
+        To use the return value as a record, include the header:
+
+            -include_lib("ewpcap/include/ewpcap.hrl").
+
+        stats/1 returns statistics about dropped packets. See
+        pcap_stats(3PCAP) for details.
+
+        The pcap_stats records contains these fields:
+
+            recv : number of packets received
+
+            drop : number of packets dropped due to insufficient buffer
+
+            ifdrop : number of packets dropped by the network interface
+
+            capt : number of packets received by the application (Win32 only)
+
 ## EXAMPLES
 
         -module(icmp_resend).

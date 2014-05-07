@@ -42,3 +42,10 @@
         ref,
         res
         }).
+
+-record(pcap_stat, {
+        recv,       % number of packets received
+        drop,       % number of packets dropped
+        ifdrop,     % number of packets dropped by interface
+        capt        % Win32: number of packets that reach the application
+        }).
