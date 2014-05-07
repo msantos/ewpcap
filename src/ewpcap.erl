@@ -87,8 +87,10 @@ open() ->
 open(Dev) ->
     open(Dev, []).
 open(<<>>, Options) ->
-    {ok, Dev} = pcap_lookupdev(),
-    open(Dev, Options);
+    case pcap_lookupdev() of
+        {ok, Dev} -> open(Dev, Options);
+        Error -> Error
+    end.
 open(Dev, Options) when is_list(Options) ->
     Snaplen = proplists:get_value(snaplen, Options, 16#ffff),
     Promisc = bool(proplists:get_value(promisc, Options, false)),
