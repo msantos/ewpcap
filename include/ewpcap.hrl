@@ -31,21 +31,24 @@
 
 % Packet format in message
 -record(ewpcap, {
-        ref,        % socket identifier
-        dlt,        % datalink type
-        time,       % time: {MegaSecs, Secs, MicroSecs}
-        length,     % actual packet length (data may be truncated)
-        packet      % packet
+        ref :: reference(),             % socket identifier
+        dlt :: integer(),               % datalink type
+        time :: {non_neg_integer(),non_neg_integer(),non_neg_integer()},
+                                        % time: {MegaSecs, Secs, MicroSecs}
+        length :: non_neg_integer(),    % actual packet length
+                                        %  (data may be truncated)
+        packet :: binary()              % packet
         }).
 
 -record(ewpcap_resource, {
-        ref,
-        res
+        ref :: reference(),
+        res :: any()
         }).
 
 -record(ewpcap_stat, {
-        recv,       % number of packets received
-        drop,       % number of packets dropped
-        ifdrop,     % number of packets dropped by interface
-        capt        % Win32: number of packets that reach the application
+        recv :: integer(),      % number of packets received
+        drop :: integer(),      % number of packets dropped
+        ifdrop :: integer(),    % number of packets dropped by interface
+        capt :: integer()       % Win32: number of packets that reach
+                                %  the application
         }).

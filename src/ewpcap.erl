@@ -86,10 +86,23 @@ pcap_stats(_) ->
 %%--------------------------------------------------------------------
 %%% API
 %%--------------------------------------------------------------------
+-type open_options() :: [
+    {snaplen, non_neg_integer()} |
+    {promisc, boolean()} |
+    {to_ms, non_neg_integer()} |
+    {filter, iodata()} |
+    {buffer, non_neg_integer()}
+].
+
+-spec open() -> {'ok', #ewpcap_resource{}} | {'error', string()}.
 open() ->
     open(<<>>, []).
+
+-spec open(iodata()) -> {'ok', #ewpcap_resource{}} | {'error', string()}.
 open(Dev) ->
     open(Dev, []).
+
+-spec open(iodata(),open_options()) -> {'ok', #ewpcap_resource{}} | {'error', string()}.
 open(<<>>, Options) ->
     case pcap_lookupdev() of
         {ok, Dev} -> open(Dev, Options);
@@ -125,12 +138,21 @@ open_2(Socket) ->
         Error -> Error
     end.
 
+-spec close(#ewpcap_resource{}) -> 'ok' | {'error', string()}.
 close(#ewpcap_resource{res = Res}) ->
     pcap_close(Res).
 
+-type filter_options() :: [
+    {optimize, boolean()} |
+    {netmask, non_neg_integer()}
+].
+
+-spec filter(#ewpcap_resource{}, iodata()) -> 'ok' | {'error', string()}.
 filter(Res, Filter) ->
     filter(Res, Filter, []).
 
+-spec filter(#ewpcap_resource{}, iodata(), filter_options()) ->
+    'ok' | {'error', string()}.
 filter(#ewpcap_resource{res = Res}, Filter, Options) when is_binary(Filter); is_list(Filter) ->
     Optimize = bool(proplists:get_value(optimize, Options, true)),
     Netmask = mask(proplists:get_value(netmask, Options, ?PCAP_NETMASK_UNKNOWN)),
@@ -140,8 +162,12 @@ filter(#ewpcap_resource{res = Res}, Filter, Options) when is_binary(Filter); is_
 loop(#ewpcap_resource{res = Res}) ->
     pcap_loop(Res).
 
+-spec read(#ewpcap_resource{}) -> {'ok', binary()} | {'error', string()}.
 read(Res) ->
     read(Res, infinity).
+
+-spec read(#ewpcap_resource{}, 'infinity' | non_neg_integer()) ->
+    {'ok', binary()} | {'error', string() | 'eagain'}.
 read(#ewpcap_resource{ref = Ref}, Timeout) ->
     receive
         {ewpcap, Ref, _DatalinkType, _Time, _ActualLength, Packet} ->
@@ -152,12 +178,17 @@ read(#ewpcap_resource{ref = Ref}, Timeout) ->
         Timeout -> {error, eagain}
     end.
 
+-spec write(#ewpcap_resource{}, iodata()) -> 'ok' | {'error', string()}.
 write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
 
+-spec dev() -> {'ok', string()} | {'error', string()}.
 dev() ->
     pcap_lookupdev().
 
+-spec getifaddrs() ->
+    {'ok',[] | [{string(), [proplists:proplist()]}]} |
+    {'error',string()}.
 getifaddrs() ->
     case pcap_findalldevs() of
         {ok, Iflist} ->
@@ -166,6 +197,7 @@ getifaddrs() ->
             Error
     end.
 
+-spec stats(#ewpcap_resource{}) -> {'ok',#ewpcap_stat{}} | {'error',string()}.
 stats(#ewpcap_resource{res = Res}) ->
     pcap_stats(Res).
 
