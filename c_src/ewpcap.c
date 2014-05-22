@@ -230,6 +230,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     int promisc = 0;
     int to_ms = 0;
     int buffer_size = 0;
+    int rfmon = 0;
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
     EWPCAP_STATE *ep = NULL;
@@ -250,6 +251,9 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
 
     if (!enif_get_int(env, argv[4], &buffer_size))
+        return enif_make_badarg(env);
+
+    if (!enif_get_int(env, argv[5], &rfmon))
         return enif_make_badarg(env);
 
     /* NULL terminate the device name */
@@ -284,6 +288,10 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     /* Set buffer size */
     if (buffer_size > 0)
         (void)pcap_set_buffer_size(ep->p, buffer_size);
+
+    /* Set monitor mode */
+    if (pcap_can_set_rfmon(ep->p) == 1)
+        (void)pcap_set_rfmon(ep->p, rfmon);
 
     /* Return failure on error and warnings */
     if (pcap_activate(ep->p) != 0) {
@@ -625,7 +633,7 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
-    {"pcap_open_live", 5, nif_pcap_open_live},
+    {"pcap_open_live", 6, nif_pcap_open_live},
     {"pcap_close", 1, nif_pcap_close},
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},

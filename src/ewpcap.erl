@@ -61,7 +61,7 @@ on_load() ->
 pcap_compile(_,_,_,_) ->
     erlang:nif_error(not_implemented).
 
-pcap_open_live(_,_,_,_,_) ->
+pcap_open_live(_,_,_,_,_,_) ->
     erlang:nif_error(not_implemented).
 
 pcap_close(_) ->
@@ -91,7 +91,8 @@ pcap_stats(_) ->
     {promisc, boolean()} |
     {to_ms, non_neg_integer()} |
     {filter, iodata()} |
-    {buffer, non_neg_integer()}
+    {buffer, non_neg_integer()} |
+    {monitor, boolean()}
 ].
 
 -spec open() -> {'ok', #ewpcap_resource{}} | {'error', string()}.
@@ -113,9 +114,10 @@ open(Dev, Options) when is_list(Options) ->
     Promisc = bool(proplists:get_value(promisc, Options, false)),
     To_ms = proplists:get_value(to_ms, Options, 500),
     Filter = proplists:get_value(filter, Options, <<>>),
-    Bufsz = proplists:get_value(buffer, Options, 0),
+    Buffer = proplists:get_value(buffer, Options, 0),
+    Monitor = proplists:get_value(monitor, Options, false),
 
-    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Bufsz) of
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, bool(Monitor)) of
         {ok, Socket} ->
             open_1(Socket, Options, Filter);
         Error ->
