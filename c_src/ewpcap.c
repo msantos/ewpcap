@@ -257,10 +257,12 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
 
     /* NULL terminate the device name */
-    if (device.size > 0 && !enif_realloc_binary(&device, device.size+1))
-        return enif_make_tuple2(env, atom_error, atom_enomem);
+    if (device.size > 0) {
+        if (!enif_realloc_binary(&device, device.size+1))
+            return enif_make_tuple2(env, atom_error, atom_enomem);
 
-    device.data[device.size-1] = '\0';
+        device.data[device.size-1] = '\0';
+    }
 
     ep = enif_alloc_resource(EWPCAP_RESOURCE, sizeof(EWPCAP_STATE));
 
