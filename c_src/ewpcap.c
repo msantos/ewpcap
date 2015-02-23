@@ -33,6 +33,13 @@
 #include <string.h>
 #include <errno.h>
 
+#if defined(__SVR4) && defined(__sun)
+#define u_int8_t            uint8_t
+#define u_int16_t           uint16_t
+#define u_int32_t           uint32_t
+#define u_int64_t           uint64_t
+#endif
+
 /* sockaddr, PF_* */
 #if defined(WIN32) || defined(__WIN32__) || defined(__WIN32)
 # include <Winsock2.h>
@@ -129,7 +136,7 @@ ewpcap_loop(void *arg)
 
     ep->env = enif_alloc_env();
     if (ep->env == NULL)
-        goto ERR;
+        goto ERROR;
 
     rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
@@ -146,7 +153,7 @@ ewpcap_loop(void *arg)
             break;
     }
 
-ERR:
+ERROR:
     /* env is freed in resource cleanup */
     return NULL;
 }
@@ -374,7 +381,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in *sin = (struct sockaddr_in *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin_addr.s_addr), &buf)) \
-                goto ERR; \
+                goto ERROR; \
  \
             (void)memcpy(buf.data, &(sin->sin_addr.s_addr), buf.size); \
         } \
@@ -383,7 +390,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in6 *sin = (struct sockaddr_in6 *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin6_addr), &buf)) \
-                goto ERR; \
+                goto ERROR; \
  \
             (void)memcpy(buf.data, &(sin->sin6_addr), buf.size); \
         } \
@@ -491,7 +498,7 @@ nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             atom_ok,
             dev);
 
-ERR:
+ERROR:
     pcap_freealldevs(alldevsp);
 
     /* MAKE_ADDR macro */

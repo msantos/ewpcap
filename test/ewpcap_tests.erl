@@ -48,7 +48,7 @@ open_test() ->
 
 open_test_1() ->
     {ok, Ifname} = ewpcap:dev(),
-    {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"}]),
+    {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"}|opt()]),
 
     {error, eagain} = ewpcap:read(Socket, 100),
     gen_tcp:connect({8,8,8,8}, 29, [binary], 100),
@@ -104,3 +104,9 @@ ifattr(Key, Ifs, Iflist1, Iflist2) ->
 if_value(Key, Ifname, Ifattr) ->
     Attr = proplists:get_value(Ifname, Ifattr),
     proplists:get_all_values(Key, Attr).
+
+opt() ->
+    case os:type() of
+        {unix,sunos} -> [promisc];
+        _ -> []
+    end.
