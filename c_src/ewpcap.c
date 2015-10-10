@@ -96,13 +96,6 @@ void ewpcap_error(EWPCAP_STATE *ep, char *msg);
     static int
 load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
-    EWPCAP_STATE *state = NULL;
-
-
-    state = enif_alloc(sizeof(EWPCAP_STATE));
-    if (state == NULL)
-        return -1;
-
     atom_ok = enif_make_atom(env, "ok");
     atom_error = enif_make_atom(env, "error");
     atom_enomem = enif_make_atom(env, "enomem");
