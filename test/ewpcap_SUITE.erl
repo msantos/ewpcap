@@ -1,4 +1,4 @@
-%% Copyright (c) 2012-2014, Michael Santos <michael.santos@gmail.com>
+%% Copyright (c) 2012-2016, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -28,25 +28,37 @@
 %% LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 %% ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %% POSSIBILITY OF SUCH DAMAGE.
--module(ewpcap_tests).
+-module(ewpcap_SUITE).
 
--compile(export_all).
-
--include_lib("eunit/include/eunit.hrl").
+-include_lib("common_test/include/ct.hrl").
 -include("ewpcap.hrl").
 
-open_test() ->
-    case ewpcap:getifaddrs() of
-        {ok, []} ->
-            error_logger:info_report([
-                {skipping, "beam does not have privileges to run test"}
-            ]),
-            ok;
-        {ok, _Iflist} ->
-            open_test_1()
-    end.
+-export([
+        all/0,
+        groups/0
+    ]).
 
-open_test_1() ->
+-export([
+        sniff/1,
+        getifaddrs/1,
+        no_tests/1
+    ]).
+
+
+all() ->
+    Priv = case ewpcap:getifaddrs() of
+        {ok, []} ->
+            nopriv;
+        {ok, _Iflist} ->
+            priv
+    end,
+    [{group, Priv}].
+
+groups() ->
+    [{priv, [], [sniff, getifaddrs]},
+        {nopriv, [], [no_tests]}].
+
+sniff(_Config) ->
     {ok, Ifname} = ewpcap:dev(),
     {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"}|opt()]),
 
@@ -58,29 +70,18 @@ open_test_1() ->
 
     ok.
 
-getifaddrs_test() ->
+getifaddrs(_Config) ->
     case os:type() of
         {unix, _} ->
-            getifaddrs_test_1();
+            {ok, Iflist1} = ewpcap:getifaddrs(),
+            {ok, Iflist2} = inet:getifaddrs(),
+            ifcmp(Iflist1, Iflist2);
         _ ->
-            error_logger:info_report([
-                {skipping,
-                 "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0 may differ on this platorm"}
-            ]),
-            ok
+            {skip, "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0 may differ on this platorm"}
     end.
 
-getifaddrs_test_1() ->
-    case ewpcap:getifaddrs() of
-        {ok, []} ->
-            error_logger:info_report([
-                {skipping, "beam does not have privileges to run test"}
-            ]),
-            ok;
-        {ok, Iflist1} ->
-            {ok, Iflist2} = inet:getifaddrs(),
-            ifcmp(Iflist1, Iflist2)
-    end.
+no_tests(_Config) ->
+    {skip, "No tests"}.
 
 ifcmp(Iflist1, Iflist2) ->
     % Get the common interfaces
