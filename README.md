@@ -50,7 +50,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
 ## COMPILING
 
-    make
+    rebar3 do clean, compile, ct
 
 
 ## EXPORTS

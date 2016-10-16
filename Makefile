@@ -1,35 +1,20 @@
-REBAR=$(shell which rebar || echo ./rebar)
-DEPSOLVER_PLT=$(CURDIR)/.depsolver_plt
+REBAR ?= rebar3
 
 all: compile
 
-./rebar:
-	erl -noshell -s inets start -s ssl start \
-		-eval 'httpc:request(get, {"https://raw.github.com/wiki/rebar/rebar/rebar", []}, [], [{stream, "./rebar"}])' \
-		-s inets stop -s init stop
-	chmod +x ./rebar
-
-compile: $(REBAR)
+compile:
 	@$(REBAR) compile
 
-clean: $(REBAR)
+clean:
 	@$(REBAR) clean
 
 test: compile
-	@$(REBAR) eunit recursive=false
+	@$(REBAR) ct1
 
-.PHONY: test dialyzer typer clean distclean
+.PHONY: test dialyzer typer clean
 
-$(DEPSOLVER_PLT):
-	@dialyzer $(DIALYZER_FLAGS) --output_plt $(DEPSOLVER_PLT) --build_plt \
-		--apps erts kernel stdlib crypto
+dialyzer:
+	@$(REBAR) dialyzer
 
-dialyzer: $(DEPSOLVER_PLT)
-	@dialyzer $(DIALYZER_FLAGS) -I include --plt $(DEPSOLVER_PLT) -Wrace_conditions \
-		--src src test
-
-typer: $(DEPSOLVER_PLT)
-	@typer -I include --plt $(DEPSOLVER_PLT) -r ./src
-
-distclean: clean
-	@rm $(DEPSOLVER_PLT)
+typer:
+	@typer -pa _build/default/lib/ewpcap/ebin -I include --plt _build/default/*_plt -r ./src
