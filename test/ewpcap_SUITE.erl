@@ -77,7 +77,8 @@ getifaddrs(_Config) ->
             {ok, Iflist2} = inet:getifaddrs(),
             ifcmp(Iflist1, Iflist2);
         _ ->
-            {skip, "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0 may differ on this platorm"}
+            {skip, "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0"
+                   " may differ on this platorm"}
     end.
 
 no_tests(_Config) ->
@@ -108,6 +109,6 @@ if_value(Key, Ifname, Ifattr) ->
 
 opt() ->
     case os:type() of
-        {unix,sunos} -> [promisc];
+        {unix, sunos} -> [promisc];
         _ -> []
     end.

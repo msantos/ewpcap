@@ -1,21 +1,21 @@
 %% Copyright (c) 2012-2014, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
-%% 
+%%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
 %% are met:
-%% 
+%%
 %% Redistributions of source code must retain the above copyright
 %% notice, this list of conditions and the following disclaimer.
-%% 
+%%
 %% Redistributions in binary form must reproduce the above copyright
 %% notice, this list of conditions and the following disclaimer in the
 %% documentation and/or other materials provided with the distribution.
-%% 
+%%
 %% Neither the name of the author nor the names of its contributors
 %% may be used to endorse or promote products derived from this software
 %% without specific prior written permission.
-%% 
+%%
 %% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 %% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 %% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -44,6 +44,9 @@
 -define(PCAP_NETMASK_UNKNOWN, 16#ffffffff).
 -define(DLT_EN10MB, 1).
 
+-type ewpcap_resource() :: #ewpcap_resource{}.
+
+-export_type([ewpcap_resource/0]).
 
 -on_load(on_load/0).
 
@@ -58,10 +61,10 @@ on_load() ->
             {error, "Requires smp support (-smp enable)"}
     end.
 
-pcap_compile(_,_,_,_) ->
+pcap_compile(_, _, _, _) ->
     erlang:nif_error(not_implemented).
 
-pcap_open_live(_,_,_,_,_,_) ->
+pcap_open_live(_, _, _, _, _, _) ->
     erlang:nif_error(not_implemented).
 
 pcap_close(_) ->
@@ -76,7 +79,7 @@ pcap_findalldevs() ->
 pcap_loop(_) ->
     erlang:nif_error(not_implemented).
 
-pcap_sendpacket(_,_) ->
+pcap_sendpacket(_, _) ->
     erlang:nif_error(not_implemented).
 
 pcap_stats(_) ->
@@ -95,15 +98,16 @@ pcap_stats(_) ->
     {monitor, boolean()}
 ].
 
--spec open() -> {'ok', #ewpcap_resource{}} | {'error', string()}.
+-spec open() -> {'ok', ewpcap_resource()} | {'error', string()}.
 open() ->
     open(<<>>, []).
 
--spec open(iodata()) -> {'ok', #ewpcap_resource{}} | {'error', string()}.
+-spec open(iodata()) -> {'ok', ewpcap_resource()} | {'error', string()}.
 open(Dev) ->
     open(Dev, []).
 
--spec open(iodata(),open_options()) -> {'ok', #ewpcap_resource{}} | {'error', string()}.
+-spec open(iodata(), open_options())
+    -> {'ok', ewpcap_resource()} | {'error', string()}.
 open(<<>>, Options) ->
     case pcap_lookupdev() of
         {ok, Dev} -> open(Dev, Options);
@@ -140,7 +144,7 @@ open_2(Socket) ->
         Error -> Error
     end.
 
--spec close(#ewpcap_resource{}) -> 'ok' | {'error', string()}.
+-spec close(ewpcap_resource()) -> 'ok' | {'error', string()}.
 close(#ewpcap_resource{res = Res}) ->
     pcap_close(Res).
 
@@ -149,26 +153,28 @@ close(#ewpcap_resource{res = Res}) ->
     {netmask, non_neg_integer()}
 ].
 
--spec filter(#ewpcap_resource{}, iodata()) -> 'ok' | {'error', string()}.
+-spec filter(ewpcap_resource(), iodata()) -> 'ok' | {'error', string()}.
 filter(Res, Filter) ->
     filter(Res, Filter, []).
 
--spec filter(#ewpcap_resource{}, iodata(), filter_options()) ->
+-spec filter(ewpcap_resource(), iodata(), filter_options()) ->
     'ok' | {'error', string()}.
-filter(#ewpcap_resource{res = Res}, Filter, Options) when is_binary(Filter); is_list(Filter) ->
+filter(#ewpcap_resource{res = Res}, Filter, Options)
+  when is_binary(Filter); is_list(Filter) ->
     Optimize = bool(proplists:get_value(optimize, Options, true)),
-    Netmask = mask(proplists:get_value(netmask, Options, ?PCAP_NETMASK_UNKNOWN)),
+    Netmask = mask(proplists:get_value(netmask, Options,
+                                       ?PCAP_NETMASK_UNKNOWN)),
 
     pcap_compile(Res, Filter, Optimize, Netmask).
 
 loop(#ewpcap_resource{res = Res}) ->
     pcap_loop(Res).
 
--spec read(#ewpcap_resource{}) -> {'ok', binary()} | {'error', string()}.
+-spec read(ewpcap_resource()) -> {'ok', binary()} | {'error', string()}.
 read(Res) ->
     read(Res, infinity).
 
--spec read(#ewpcap_resource{}, 'infinity' | non_neg_integer()) ->
+-spec read(ewpcap_resource(), 'infinity' | non_neg_integer()) ->
     {'ok', binary()} | {'error', string() | 'eagain'}.
 read(#ewpcap_resource{ref = Ref}, Timeout) ->
     receive
@@ -180,7 +186,7 @@ read(#ewpcap_resource{ref = Ref}, Timeout) ->
         Timeout -> {error, eagain}
     end.
 
--spec write(#ewpcap_resource{}, iodata()) -> 'ok' | {'error', string()}.
+-spec write(ewpcap_resource(), iodata()) -> 'ok' | {'error', string()}.
 write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
 
@@ -189,8 +195,8 @@ dev() ->
     pcap_lookupdev().
 
 -spec getifaddrs() ->
-    {'ok',[] | [{string(), [proplists:proplist()]}]} |
-    {'error',string()}.
+    {'ok', [] | [{string(), [proplists:proplist()]}]} |
+    {'error', string()}.
 getifaddrs() ->
     case pcap_findalldevs() of
         {ok, Iflist} ->
@@ -199,7 +205,8 @@ getifaddrs() ->
             Error
     end.
 
--spec stats(#ewpcap_resource{}) -> {'ok',#ewpcap_stat{}} | {'error',string()}.
+-spec stats(ewpcap_resource())
+    -> {'ok', ewpcap_stat()} | {'error', string()}.
 stats(#ewpcap_resource{res = Res}) ->
     pcap_stats(Res).
 
