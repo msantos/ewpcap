@@ -1,4 +1,4 @@
-%% Copyright (c) 2012-2014, Michael Santos <michael.santos@gmail.com>
+%% Copyright (c) 2012-2016, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,9 @@
 -define(DLT_EN10MB, 1).
 
 -type ewpcap_resource() :: #ewpcap_resource{}.
+-type ewpcap_stat() :: #ewpcap_stat{}.
 
--export_type([ewpcap_resource/0]).
+-export_type([ewpcap_resource/0, ewpcap_stat/0]).
 
 -on_load(on_load/0).
 
