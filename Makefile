@@ -11,7 +11,7 @@ compile:
 clean:
 	@$(REBAR) clean
 
-test: compile
+test:
 	@$(REBAR) ct
 
 dialyzer:
