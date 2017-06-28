@@ -48,6 +48,7 @@
 # include <sys/socket.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
+# define RFMON_SUPPORTED
 #endif
 
 #include "erl_nif.h"
@@ -291,9 +292,11 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (buffer_size > 0)
         (void)pcap_set_buffer_size(ep->p, buffer_size);
 
+#if defined(RFMON_SUPPORTED)
     /* Set monitor mode */
     if (pcap_can_set_rfmon(ep->p) == 1)
         (void)pcap_set_rfmon(ep->p, rfmon);
+#endif
 
     /* Return failure on error and warnings */
     if (pcap_activate(ep->p) != 0) {
