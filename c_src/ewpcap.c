@@ -604,11 +604,7 @@ nif_pcap_stats(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
                 enif_make_uint(env, ps.ps_recv),
                 enif_make_uint(env, ps.ps_drop),
                 enif_make_uint(env, ps.ps_ifdrop),
-#ifdef WIN32
-                enif_make_uint(env, ps.bs_capt)
-#else
                 enif_make_uint(env, 0)
-#endif
                 ));
 }
 
