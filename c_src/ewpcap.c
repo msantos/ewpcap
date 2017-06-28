@@ -129,7 +129,7 @@ ewpcap_loop(void *arg)
 
     ep->env = enif_alloc_env();
     if (ep->env == NULL)
-        goto ERROR;
+        goto ERROR_LABEL;
 
     rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
@@ -146,7 +146,7 @@ ewpcap_loop(void *arg)
             break;
     }
 
-ERROR:
+ERROR_LABEL:
     /* env is freed in resource cleanup */
     return NULL;
 }
@@ -374,7 +374,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in *sin = (struct sockaddr_in *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin_addr.s_addr), &buf)) \
-                goto ERROR; \
+                goto ERROR_LABEL; \
  \
             (void)memcpy(buf.data, &(sin->sin_addr.s_addr), buf.size); \
         } \
@@ -383,7 +383,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in6 *sin = (struct sockaddr_in6 *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin6_addr), &buf)) \
-                goto ERROR; \
+                goto ERROR_LABEL; \
  \
             (void)memcpy(buf.data, &(sin->sin6_addr), buf.size); \
         } \
@@ -491,7 +491,7 @@ nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             atom_ok,
             dev);
 
-ERROR:
+ERROR_LABEL:
     pcap_freealldevs(alldevsp);
 
     /* MAKE_ADDR macro */
