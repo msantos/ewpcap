@@ -48,6 +48,7 @@
 # include <sys/socket.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
+# define RFMON_SUPPORTED
 #endif
 
 #include "erl_nif.h"
@@ -129,7 +130,7 @@ ewpcap_loop(void *arg)
 
     ep->env = enif_alloc_env();
     if (ep->env == NULL)
-        goto ERROR;
+        goto ERROR_LABEL;
 
     rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
@@ -146,7 +147,7 @@ ewpcap_loop(void *arg)
             break;
     }
 
-ERROR:
+ERROR_LABEL:
     /* env is freed in resource cleanup */
     return NULL;
 }
@@ -291,9 +292,11 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (buffer_size > 0)
         (void)pcap_set_buffer_size(ep->p, buffer_size);
 
+#if defined(RFMON_SUPPORTED)
     /* Set monitor mode */
     if (pcap_can_set_rfmon(ep->p) == 1)
         (void)pcap_set_rfmon(ep->p, rfmon);
+#endif
 
     /* Return failure on error and warnings */
     if (pcap_activate(ep->p) != 0) {
@@ -374,7 +377,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in *sin = (struct sockaddr_in *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin_addr.s_addr), &buf)) \
-                goto ERROR; \
+                goto ERROR_LABEL; \
  \
             (void)memcpy(buf.data, &(sin->sin_addr.s_addr), buf.size); \
         } \
@@ -383,7 +386,7 @@ nif_pcap_lookupdev(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             struct sockaddr_in6 *sin = (struct sockaddr_in6 *)saddr; \
  \
             if (!enif_alloc_binary(sizeof(sin->sin6_addr), &buf)) \
-                goto ERROR; \
+                goto ERROR_LABEL; \
  \
             (void)memcpy(buf.data, &(sin->sin6_addr), buf.size); \
         } \
@@ -491,7 +494,7 @@ nif_pcap_findalldevs(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             atom_ok,
             dev);
 
-ERROR:
+ERROR_LABEL:
     pcap_freealldevs(alldevsp);
 
     /* MAKE_ADDR macro */
@@ -604,11 +607,7 @@ nif_pcap_stats(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
                 enif_make_uint(env, ps.ps_recv),
                 enif_make_uint(env, ps.ps_drop),
                 enif_make_uint(env, ps.ps_ifdrop),
-#ifdef WIN32
-                enif_make_uint(env, ps.bs_capt)
-#else
                 enif_make_uint(env, 0)
-#endif
                 ));
 }
 
