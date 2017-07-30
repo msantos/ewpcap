@@ -1,4 +1,4 @@
-%% Copyright (c) 2012-2016, Michael Santos <michael.santos@gmail.com>
+%% Copyright (c) 2012-2017, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,9 @@
 -export([
         sniff/1,
         getifaddrs/1,
+        open_error/1,
+        close/1,
+        resource/1,
         no_tests/1
     ]).
 
@@ -55,7 +58,7 @@ all() ->
     [{group, Priv}].
 
 groups() ->
-    [{priv, [], [sniff, getifaddrs]},
+    [{priv, [], [sniff, getifaddrs, open_error, close, resource]},
         {nopriv, [], [no_tests]}].
 
 sniff(_Config) ->
@@ -79,6 +82,38 @@ getifaddrs(_Config) ->
         _ ->
             {skip, "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0"
                    " may differ on this platorm"}
+    end.
+
+open_error(_Config) ->
+    {error, Error} = ewpcap:open(<<>>, [{filter, "ether"}]),
+    true = is_list(Error),
+    ok.
+
+close(_Config) ->
+    {ok, Socket} = ewpcap:open(<<>>, [{filter, "tcp and port 80"}|opt()]),
+    ok = ewpcap:close(Socket),
+    {'EXIT', {badarg, _}} = (catch ewpcap:close(Socket)),
+    {'EXIT', {badarg, _}} = (catch ewpcap:write(Socket, <<"badarg">>)),
+    ok.
+
+% If no reference to the socket resource exists, the thread running the
+% packet dump should be stopped and the pcap structure freed.
+resource(_Config) ->
+    spawn(fun() -> ewpcap:open(<<>>, [{filter, "tcp or udp"}|opt()]) end),
+
+    {ok, _Socket} = ewpcap:open(<<>>, [{filter, "tcp or udp"}|opt()]),
+    % Socket resource will be released
+    resource_1().
+
+resource_1() ->
+    receive
+        {ewpcap, _Ref, _DatalinkType, _Time, _ActualLength, _Packet} ->
+            resource_1();
+        {ewpcap_error, _Ref, Error} ->
+            {error, Error}
+    after
+        1000 ->
+            ok
     end.
 
 no_tests(_Config) ->

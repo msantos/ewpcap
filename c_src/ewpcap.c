@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, Michael Santos <michael.santos@gmail.com>
+/* Copyright (c) 2012-2017, Michael Santos <michael.santos@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,11 +127,6 @@ ewpcap_loop(void *arg)
     EWPCAP_STATE *ep = arg;
     int rv = 0;
 
-
-    ep->env = enif_alloc_env();
-    if (ep->env == NULL)
-        goto ERROR_LABEL;
-
     rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
     switch (rv) {
@@ -147,8 +142,6 @@ ewpcap_loop(void *arg)
             break;
     }
 
-ERROR_LABEL:
-    /* env is freed in resource cleanup */
     return NULL;
 }
 
@@ -162,7 +155,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 
     /* XXX no way to indicate an error? */
     if (ep->p == NULL)
-        return;
+        enif_thread_exit(NULL);
 
     if (!enif_alloc_binary(h->caplen, &buf)) {
         pcap_breakloop(ep->p);
@@ -202,7 +195,7 @@ ewpcap_error(EWPCAP_STATE *ep, char *msg)
     int rv = 0;
 
     if (ep->p == NULL)
-        return;
+        enif_thread_exit(NULL);
 
     /* {ewpcap_error, Ref, Error} */
     rv = enif_send(
@@ -270,6 +263,9 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
+    ep->env = NULL;
+    ep->tid = enif_thread_self();
+
     /* "any" is a Linux only virtual dev */
     ep->p = pcap_create((device.size == 0 ? "any" : (char *)device.data),
             errbuf);
@@ -309,6 +305,13 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ep->datalink = pcap_datalink(ep->p);
     (void)enif_self(env, &ep->pid);
 
+    ep->env = enif_alloc_env();
+    if (ep->env == NULL) {
+        pcap_close(ep->p);
+        enif_free_env(ep->env);
+        return enif_make_tuple2(env, atom_error, atom_enomem);
+    }
+
     ep->term_env = enif_alloc_env();
     if (ep->term_env == NULL) {
         pcap_close(ep->p);
@@ -339,9 +342,7 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             || ep->p == NULL)
         return enif_make_badarg(env);
 
-    pcap_breakloop(ep->p);
-    pcap_close(ep->p);
-    ep->p = NULL;
+    ewpcap_cleanup(env, ep);
 
     return atom_ok;
 }
@@ -620,17 +621,25 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
         return;
 
     pcap_breakloop(ep->p);
-    pcap_close(ep->p);
+
+    /*
+    if (!enif_equal_tids(ep->tid, enif_thread_self()))
+        (void)enif_thread_join(ep->tid, NULL);
+        */
 
     if (ep->env)
         enif_free_env(ep->env);
 
+    pcap_close(ep->p);
+
     if (ep->term_env)
         enif_free_env(ep->term_env);
 
-    (void)memset(ep, 0, sizeof(EWPCAP_STATE));
+    ep->env = NULL;
+    ep->term_env = NULL;
+    ep->tid = enif_thread_self();
+    ep->p = NULL;
 }
-
 
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
