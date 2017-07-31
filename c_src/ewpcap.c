@@ -308,13 +308,13 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ep->env = enif_alloc_env();
     if (ep->env == NULL) {
         pcap_close(ep->p);
-        enif_free_env(ep->env);
         return enif_make_tuple2(env, atom_error, atom_enomem);
     }
 
     ep->term_env = enif_alloc_env();
     if (ep->term_env == NULL) {
         pcap_close(ep->p);
+        enif_free_env(ep->env);
         return enif_make_tuple2(env, atom_error, atom_enomem);
     }
 
@@ -622,10 +622,8 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
     pcap_breakloop(ep->p);
 
-    /*
     if (!enif_equal_tids(ep->tid, enif_thread_self()))
         (void)enif_thread_join(ep->tid, NULL);
-        */
 
     if (ep->env)
         enif_free_env(ep->env);
