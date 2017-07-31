@@ -68,6 +68,10 @@ typedef struct _ewpcap_state {
     int datalink;
 } EWPCAP_STATE;
 
+typedef struct {
+    ErlNifMutex *lock;
+} EWPCAP_PRIV;
+
 ErlNifResourceType *EWPCAP_RESOURCE;
 
 static ERL_NIF_TERM atom_ok;
@@ -97,6 +101,8 @@ void ewpcap_error(EWPCAP_STATE *ep, char *msg);
     static int
 load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
+    EWPCAP_PRIV *priv = NULL;
+
     atom_ok = enif_make_atom(env, "ok");
     atom_error = enif_make_atom(env, "error");
     atom_enomem = enif_make_atom(env, "enomem");
@@ -118,7 +124,25 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
             ERL_NIF_RT_CREATE, NULL)) == NULL)
         return -1;
 
+    priv = enif_alloc(sizeof(EWPCAP_PRIV));
+    if (priv == NULL)
+        return -1;
+
+    priv->lock = enif_mutex_create("ewpcap_lock");
+    if (priv->lock == NULL)
+        return -1;
+
+    *priv_data = priv;
+
     return 0;
+}
+
+    static void
+unload(ErlNifEnv *env, void *priv_data)
+{
+    EWPCAP_PRIV *priv = priv_data;
+    enif_mutex_destroy(priv->lock);
+    enif_free(priv);
 }
 
     void *
@@ -524,12 +548,14 @@ nif_pcap_loop(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 nif_pcap_compile(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     EWPCAP_STATE *ep = NULL;
+    EWPCAP_PRIV *priv = NULL;
     ErlNifBinary filter = {0};
     int optimize = 0;
     u_int32_t netmask = 0;
 
     struct bpf_program fp = {0};
 
+    priv = enif_priv_data(env);
 
     if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
             || ep->p == NULL)
@@ -550,11 +576,17 @@ nif_pcap_compile(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     filter.data[filter.size-1] = '\0';
 
+    enif_mutex_lock(priv->lock);
+
     if (pcap_compile(ep->p, &fp, (const char *)filter.data,
-                optimize, netmask) != 0)
+                optimize, netmask) != 0) {
+        enif_mutex_unlock(priv->lock);
         return enif_make_tuple2(env,
                 atom_error,
                 enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
+    }
+
+    enif_mutex_unlock(priv->lock);
 
     if (pcap_setfilter(ep->p, &fp) < 0)
         return enif_make_tuple2(env,
@@ -650,4 +682,4 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_stats", 1, nif_pcap_stats}
 };
 
-ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, NULL)
+ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, unload)
