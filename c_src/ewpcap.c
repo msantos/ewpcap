@@ -255,6 +255,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     ERL_NIF_TERM res = {0};
     ERL_NIF_TERM ref = {0};
 
+    ERL_NIF_TERM t = {0};
 
     if (!enif_inspect_iolist_as_binary(env, argv[0], &device))
         return enif_make_badarg(env);
@@ -287,17 +288,16 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
-    ep->env = NULL;
-    ep->tid = enif_thread_self();
-
     /* "any" is a Linux only virtual dev */
     ep->p = pcap_create((device.size == 0 ? "any" : (char *)device.data),
             errbuf);
 
-    if (ep->p == NULL)
-        return enif_make_tuple2(env,
+    if (ep->p == NULL) {
+        t = enif_make_tuple2(env,
                 atom_error,
                 enif_make_string(env, errbuf, ERL_NIF_LATIN1));
+        goto ERROR_LABEL;
+    }
 
     /* Set the snaplen */
     (void)pcap_set_snaplen(ep->p, snaplen);
@@ -320,26 +320,26 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     /* Return failure on error and warnings */
     if (pcap_activate(ep->p) != 0) {
-        pcap_close(ep->p);
-        return enif_make_tuple2(env,
+        t = enif_make_tuple2(env,
                 atom_error,
                 enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
+        goto ERROR_LABEL;
     }
 
     ep->datalink = pcap_datalink(ep->p);
+    ep->tid = enif_thread_self();
     (void)enif_self(env, &ep->pid);
 
     ep->env = enif_alloc_env();
     if (ep->env == NULL) {
-        pcap_close(ep->p);
-        return enif_make_tuple2(env, atom_error, atom_enomem);
+        t = enif_make_tuple2(env, atom_error, atom_enomem);
+        goto ERROR_LABEL;
     }
 
     ep->term_env = enif_alloc_env();
     if (ep->term_env == NULL) {
-        pcap_close(ep->p);
-        enif_free_env(ep->env);
-        return enif_make_tuple2(env, atom_error, atom_enomem);
+        t = enif_make_tuple2(env, atom_error, atom_enomem);
+        goto ERROR_LABEL;
     }
 
     ep->ref = enif_make_ref(ep->term_env);
@@ -354,6 +354,17 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
                 atom_ewpcap_resource,
                 ref,
                 res));
+
+ERROR_LABEL:
+    if (ep->p)
+        pcap_close(ep->p);
+
+    if (ep->env)
+        enif_free_env(ep->env);
+
+    enif_release_resource(ep);
+
+    return t;
 }
 
     static ERL_NIF_TERM
