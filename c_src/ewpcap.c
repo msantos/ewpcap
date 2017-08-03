@@ -181,10 +181,8 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     if (ep->p == NULL)
         enif_thread_exit(NULL);
 
-    if (!enif_alloc_binary(h->caplen, &buf)) {
-        pcap_breakloop(ep->p);
-        return;
-    }
+    if (!enif_alloc_binary(h->caplen, &buf))
+        enif_thread_exit(NULL);
 
     (void)memcpy(buf.data, bytes, buf.size);
 
@@ -208,7 +206,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     );
 
     if (!rv)
-        pcap_breakloop(ep->p);
+        enif_thread_exit(NULL);
 
     enif_clear_env(ep->env);
 }
@@ -234,7 +232,7 @@ ewpcap_error(EWPCAP_STATE *ep, char *msg)
     );
 
     if (!rv)
-        pcap_breakloop(ep->p);
+        enif_thread_exit(NULL);
 
     enif_clear_env(ep->env);
 }
