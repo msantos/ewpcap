@@ -542,10 +542,12 @@ nif_pcap_loop(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     EWPCAP_STATE *ep = NULL;
 
-
     if (!enif_get_resource(env, argv[0], EWPCAP_RESOURCE, (void **)&ep)
             || ep->p == NULL)
         return enif_make_badarg(env);
+
+    if (!enif_equal_tids(ep->tid, enif_thread_self()))
+        return enif_make_tuple2(env, atom_error, enif_make_atom(env, erl_errno_id(EAGAIN)));
 
     if (enif_thread_create("ewpcap_loop", &ep->tid, ewpcap_loop, ep, NULL) != 0)
         return enif_make_tuple2(env, atom_error, enif_make_atom(env, erl_errno_id(errno)));
