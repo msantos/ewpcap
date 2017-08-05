@@ -115,6 +115,11 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         The Packet is a binary holding the captured data.
 
+        Errors will be sent to the caller and the pcap filter will
+        be terminated:
+
+            {ewpcap_error, Ref, Error}
+
     close(Socket) -> ok
 
         Closes the pcap descriptor.

@@ -158,8 +158,7 @@ ewpcap_loop(void *arg)
             /* break requested using pcap_breakloop */
             break;
         case -1:
-            /* pcap_loop error: the pcap handle may not be valid at this
-               point, so we do not return an error */
+            ewpcap_error(ep, pcap_geterr(ep->p));
             break;
 
         default:
