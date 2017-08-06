@@ -684,7 +684,7 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
     {"pcap_open_live", 6, nif_pcap_open_live},
-    {"pcap_close", 1, nif_pcap_close},
+    {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},

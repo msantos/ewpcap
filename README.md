@@ -53,6 +53,20 @@ SMP erlang must be enabled (erl -smp -pa ebin).
     rebar3 do clean, compile, ct
 
 
+## DATA TYPES
+
+    resource()
+
+        An record returned by open/0,1,2.
+
+        The record contains 2 fields:
+
+            * res: an NIF resource associated with the pcap socket. The
+                   pcap process terminates when this resource is garbage
+                   collected.
+
+            * ref: reference to socket handle in packet tuple
+
 ## EXPORTS
 
     open() -> {ok, Socket} | {error, Error}
@@ -73,6 +87,11 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         Open a network interface and begin receiving packets.
 
+        The returned Socket in the 'ok' tuple must be kept by the
+        process. When the socket goes out of scope, the pcap filter will
+        be shut down and all resources associated with the socket will
+        be freed. See also close/1.
+
         Dev is the name of the network device. If an empty binary (<<>>)
         is passed in, pcap will select a default interface.
 
@@ -85,7 +104,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
             * a snaplen (packet length) of 65535 bytes
 
-            * timeout set to 500 ms
+            * timeout set to 500 ms (see "SCHEDULER LATENCY")
 
             * no filter (all packets are received)
 
@@ -122,7 +141,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
     close(Socket) -> ok
 
-        Closes the pcap descriptor.
+        Closes the pcap descriptor. See "SCHEDULER LATENCY".
 
     filter(Socket, Filter) -> ok | {error, Error}
     filter(Socket, Filter, Options) -> ok | {error, Error}
@@ -145,9 +164,10 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         Convenience function wrapping receive, returning the packet
         contents.
 
-    write(Socket) -> ok | {error, pcap_error_string()}
+    write(Socket, Packet) -> ok | {error, pcap_error_string()}
 
         Types   Socket = resource()
+                Packet = binary()
 
         Write the packet to the network. See pcap_sendpacket(3PCAP).
 
@@ -202,6 +222,44 @@ SMP erlang must be enabled (erl -smp -pa ebin).
             ifdrop : number of packets dropped by the network interface
 
             capt : number of packets received by the application (Win32 only)
+
+## SCHEDULER LATENCY
+
+In normal usage, ewpcap does not perform any blocking operations that
+could interfere with the scheduler. For example, spawning one or more
+long running pcap processes is scheduler friendly.
+
+To confirm, run:
+
+~~~
+erlang:system_monitor(self(), [{long_schedule, 10}]).
+~~~
+
+ewpcap may block when stopping the pcap process. This situation might
+occur if rapidly spawning and garbage collecting pcap processes:
+
+~~~
+% Don't do this: ewpcap resource freed when spawned processes exit
+N = 100,
+[ spawn(fun() -> ewpcap:open(<<>>, [{filter, "tcp and port 9876"}]), ok end)
+    || X <- lists:seq(1,N) ].
+~~~
+
+However, if you need to do it, there are some workarounds:
+
+* decrease the pcap timeout
+
+~~~
+% Set timeout to 1 ms
+ewpcap:open(<<>>, [{filter, "tcp"}, {to_ms, 1}]).
+~~~
+
+* explicitly do resource cleanup on a dirty scheduler
+
+~~~
+{ok, Socket} = ewpcap:open(<<>>, [{filter, "tcp"}]),
+ewpcap:close(Socket)
+~~~
 
 ## EXAMPLES
 
