@@ -58,11 +58,17 @@
 TWinDynDriverCallbacks WinDynDriverCallbacks;
 #endif
 
+enum {
+    EWPCAP_TID_INIT,
+    EWPCAP_TID_RUNNING
+};
+
 typedef struct _ewpcap_state {
     ErlNifEnv *env;
     ErlNifEnv *term_env;
     ErlNifPid pid;
     ErlNifTid tid;
+    int tid_state;
     ERL_NIF_TERM ref;
     pcap_t *p;
     int datalink;
@@ -325,6 +331,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     ep->datalink = pcap_datalink(ep->p);
     ep->tid = enif_thread_self();
+    ep->tid_state = EWPCAP_TID_INIT;
     (void)enif_self(env, &ep->pid);
 
     ep->env = enif_alloc_env();
@@ -545,11 +552,15 @@ nif_pcap_loop(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             || ep->p == NULL)
         return enif_make_badarg(env);
 
-    if (!enif_equal_tids(ep->tid, enif_thread_self()))
-        return enif_make_tuple2(env, atom_error, enif_make_atom(env, erl_errno_id(EAGAIN)));
+    if (ep->tid_state != EWPCAP_TID_INIT)
+        return enif_make_tuple2(env, atom_error,
+                enif_make_atom(env, erl_errno_id(EAGAIN)));
 
     if (enif_thread_create("ewpcap_loop", &ep->tid, ewpcap_loop, ep, NULL) != 0)
-        return enif_make_tuple2(env, atom_error, enif_make_atom(env, erl_errno_id(errno)));
+        return enif_make_tuple2(env, atom_error,
+                enif_make_atom(env, erl_errno_id(errno)));
+
+    ep->tid_state = EWPCAP_TID_RUNNING;
 
     return atom_ok;
 }
@@ -664,7 +675,7 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
     pcap_breakloop(ep->p);
 
-    if (!enif_equal_tids(ep->tid, enif_thread_self()))
+    if (ep->tid_state == EWPCAP_TID_RUNNING)
         (void)enif_thread_join(ep->tid, NULL);
 
     if (ep->env)
@@ -677,7 +688,7 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
 
     ep->env = NULL;
     ep->term_env = NULL;
-    ep->tid = enif_thread_self();
+    ep->tid_state = EWPCAP_TID_INIT;
     ep->p = NULL;
 }
 
