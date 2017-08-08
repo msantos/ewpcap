@@ -42,6 +42,7 @@
         sniff/1,
         getifaddrs/1,
         open_error/1,
+        open_error2/1,
         close/1,
         resource/1,
         no_tests/1
@@ -58,8 +59,8 @@ all() ->
     [{group, Priv}].
 
 groups() ->
-    [{priv, [], [sniff, getifaddrs, open_error, close, resource]},
-        {nopriv, [], [no_tests]}].
+    [{priv, [], [sniff, getifaddrs, open_error, open_error2, close, resource]},
+        {nopriv, [], [open_error, open_error2]}].
 
 sniff(_Config) ->
     {ok, Ifname} = ewpcap:dev(),
@@ -86,6 +87,11 @@ getifaddrs(_Config) ->
 
 open_error(_Config) ->
     {error, Error} = ewpcap:open(<<>>, [{filter, "ether"}]),
+    true = is_list(Error),
+    ok.
+
+open_error2(_Config) ->
+    {error, Error} = ewpcap:open(<<"notexist">>, [{filter, "tcp"}]),
     true = is_list(Error),
     ok.
 

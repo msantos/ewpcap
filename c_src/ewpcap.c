@@ -291,6 +291,8 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (ep == NULL)
         return enif_make_tuple2(env, atom_error, atom_enomem);
 
+    (void)memset(ep, 0, sizeof(EWPCAP_STATE));
+
     /* "any" is a Linux only virtual dev */
     ep->p = pcap_create((device.size == 0 ? "any" : (char *)device.data),
             errbuf);
@@ -360,12 +362,6 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
                 res));
 
 ERROR_LABEL:
-    if (ep->p)
-        pcap_close(ep->p);
-
-    if (ep->env)
-        enif_free_env(ep->env);
-
     enif_release_resource(ep);
 
     return t;
@@ -673,10 +669,10 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
     if (ep->p == NULL)
         return;
 
-    pcap_breakloop(ep->p);
-
-    if (ep->tid_state == EWPCAP_TID_RUNNING)
+    if (ep->tid_state == EWPCAP_TID_RUNNING) {
+        pcap_breakloop(ep->p);
         (void)enif_thread_join(ep->tid, NULL);
+    }
 
     if (ep->env)
         enif_free_env(ep->env);
