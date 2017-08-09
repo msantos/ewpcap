@@ -261,6 +261,16 @@ ewpcap:open(<<>>, [{filter, "tcp"}, {to_ms, 1}]).
 ewpcap:close(Socket)
 ~~~
 
+## DISABLING DIRTY SCHEDULER SUPPORT
+
+Use of the dirty scheduler can be disabled by setting a define:
+
+~~~
+CC="cc -DEWPCAP_DISABLE_DIRTY_SCHEDULER" rebar3 do clean, compile
+~~~
+
+It is safe to disable for normal operation (but see "SCHEDULER LATENCY").
+
 ## EXAMPLES
 
         -module(icmp_resend).

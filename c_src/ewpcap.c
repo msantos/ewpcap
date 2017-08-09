@@ -688,10 +688,18 @@ ewpcap_cleanup(ErlNifEnv *env, void *obj)
     ep->p = NULL;
 }
 
+#ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
+#pragma message "Dirty scheduler support disabled"
+#endif
+
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
     {"pcap_open_live", 6, nif_pcap_open_live},
+#ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
+    {"pcap_close", 1, nif_pcap_close},
+#else
     {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
+#endif
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},
