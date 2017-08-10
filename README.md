@@ -167,7 +167,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
     write(Socket, Packet) -> ok | {error, pcap_error_string()}
 
         Types   Socket = resource()
-                Packet = binary()
+                Packet = iodata()
 
         Write the packet to the network. See pcap_sendpacket(3PCAP).
 
