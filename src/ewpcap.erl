@@ -1,4 +1,4 @@
-%% Copyright (c) 2012-2016, Michael Santos <michael.santos@gmail.com>
+%% Copyright (c) 2012-2017, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -99,16 +99,17 @@ pcap_stats(_) ->
     {monitor, boolean()}
 ].
 
--spec open() -> {'ok', ewpcap_resource()} | {'error', string()}.
+-spec open() -> {'ok', ewpcap_resource()} | {'error', string() | 'enomem'}.
 open() ->
     open(<<>>, []).
 
--spec open(iodata()) -> {'ok', ewpcap_resource()} | {'error', string()}.
+-spec open(iodata())
+    -> {'ok', ewpcap_resource()} | {'error', string() | 'enomem'}.
 open(Dev) ->
     open(Dev, []).
 
 -spec open(iodata(), open_options())
-    -> {'ok', ewpcap_resource()} | {'error', string()}.
+    -> {'ok', ewpcap_resource()} | {'error', string() | 'enomem'}.
 open(<<>>, Options) ->
     case pcap_lookupdev() of
         {ok, Dev} -> open(Dev, Options);
@@ -120,9 +121,9 @@ open(Dev, Options) when is_list(Options) ->
     To_ms = proplists:get_value(to_ms, Options, 500),
     Filter = proplists:get_value(filter, Options, <<>>),
     Buffer = proplists:get_value(buffer, Options, 0),
-    Monitor = proplists:get_value(monitor, Options, false),
+    Monitor = bool(proplists:get_value(monitor, Options, false)),
 
-    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, bool(Monitor)) of
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor) of
         {ok, Socket} ->
             open_1(Socket, Options, Filter);
         Error ->
@@ -145,7 +146,7 @@ open_2(Socket) ->
         Error -> Error
     end.
 
--spec close(ewpcap_resource()) -> 'ok' | {'error', string()}.
+-spec close(ewpcap_resource()) -> 'ok'.
 close(#ewpcap_resource{res = Res}) ->
     pcap_close(Res).
 
@@ -154,12 +155,13 @@ close(#ewpcap_resource{res = Res}) ->
     {netmask, non_neg_integer()}
 ].
 
--spec filter(ewpcap_resource(), iodata()) -> 'ok' | {'error', string()}.
+-spec filter(ewpcap_resource(), iodata())
+    -> 'ok' | {'error', string() | 'enomem'}.
 filter(Res, Filter) ->
     filter(Res, Filter, []).
 
 -spec filter(ewpcap_resource(), iodata(), filter_options()) ->
-    'ok' | {'error', string()}.
+    'ok' | {'error', string() | 'enomem'}.
 filter(#ewpcap_resource{res = Res}, Filter, Options)
   when is_binary(Filter); is_list(Filter) ->
     Optimize = bool(proplists:get_value(optimize, Options, true)),
@@ -168,6 +170,7 @@ filter(#ewpcap_resource{res = Res}, Filter, Options)
 
     pcap_compile(Res, Filter, Optimize, Netmask).
 
+-spec loop(ewpcap_resource()) -> 'ok' | {'error', files:posix()}.
 loop(#ewpcap_resource{res = Res}) ->
     pcap_loop(Res).
 

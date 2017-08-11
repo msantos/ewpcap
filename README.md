@@ -74,7 +74,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
     open(Dev, Options) -> {ok, Socket} | {error, Error}
     
         Types   Dev = binary() | string()
-                Error = enomem | pcap_error_string()
+                Error = enomem | string()
                 Socket = resource()
                 Options = [ Option ]
                 Option = {promisc, boolean()}
@@ -147,7 +147,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
     filter(Socket, Filter, Options) -> ok | {error, Error}
 
         Types   Socket = resource()
-                Error = enomem | pcap_error_string()
+                Error = enomem | string()
                 Options = [ Option ]
                 Option = {optimize, boolean()}
                     | {netmask, integer()}
@@ -155,23 +155,24 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         Compile a PCAP filter and apply it to the PCAP descriptor.
 
     read(Socket) -> {ok, Packet}
-    read(Socket, Timeout) -> {ok, Packet} | {error, eagain}
+    read(Socket, Timeout) -> {ok, Packet} | {error, Error}
 
         Types   Socket = resource()
                 Timeout = uint() | infinity
                 Packet = binary()
+                Error = eagain | string()
 
         Convenience function wrapping receive, returning the packet
         contents.
 
-    write(Socket, Packet) -> ok | {error, pcap_error_string()}
+    write(Socket, Packet) -> ok | {error, string()}
 
         Types   Socket = resource()
                 Packet = iodata()
 
         Write the packet to the network. See pcap_sendpacket(3PCAP).
 
-    dev() -> {ok, string()} | {error, pcap_error_string()}
+    dev() -> {ok, string()} | {error, string()}
 
         Returns the default device used by PCAP.
 
@@ -202,7 +203,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
               []}) may be returned if the user does not have permission
               to open any of the system interfaces
 
-    stats(Socket) -> {ok, #ewpcap_stat{}} | {error, pcap_error_string()}
+    stats(Socket) -> {ok, #ewpcap_stat{}} | {error, string()}
 
         Types   Socket = resource()
 
@@ -221,7 +222,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
             ifdrop : number of packets dropped by the network interface
 
-            capt : number of packets received by the application (Win32 only)
+            capt : always 0 (was number of packets received by the application (Win32 only))
 
 ## SCHEDULER LATENCY
 
