@@ -159,8 +159,10 @@ ERROR_LABEL:
 unload(ErlNifEnv *env, void *priv_data)
 {
     EWPCAP_PRIV *priv = priv_data;
-    enif_mutex_destroy(priv->lock);
-    enif_free(priv);
+    if (priv) {
+        enif_mutex_destroy(priv->lock);
+        enif_free(priv);
+    }
 }
 
     void *
