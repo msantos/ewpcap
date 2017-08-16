@@ -98,7 +98,7 @@ static ERL_NIF_TERM atom_dstaddr;
 static ERL_NIF_TERM atom_loopback;
 
 void *ewpcap_loop(void *arg);
-void ewpcap_cleanup(ErlNifEnv *env, void *obj);
+void ewpcap_free(ErlNifEnv *env, void *obj);
 void ewpcap_send(u_char *user, const struct pcap_pkthdr *h,
         const u_char *bytes);
 void ewpcap_error(EWPCAP_STATE *ep, char *msg);
@@ -126,7 +126,7 @@ load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     atom_loopback = enif_make_atom(env, "loopback");
 
     if ( (EWPCAP_RESOURCE = enif_open_resource_type(env, NULL,
-            "ewpcap_resource", ewpcap_cleanup,
+            "ewpcap_resource", ewpcap_free,
             ERL_NIF_RT_CREATE, NULL)) == NULL)
         return -1;
 
@@ -386,7 +386,7 @@ nif_pcap_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
             || ep->p == NULL)
         return enif_make_badarg(env);
 
-    ewpcap_cleanup(env, ep);
+    ewpcap_free(env, ep);
 
     return atom_ok;
 }
@@ -670,7 +670,7 @@ nif_pcap_stats(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 }
 
     void
-ewpcap_cleanup(ErlNifEnv *env, void *obj)
+ewpcap_free(ErlNifEnv *env, void *obj)
 {
     EWPCAP_STATE *ep = obj;
 
