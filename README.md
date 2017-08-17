@@ -264,10 +264,11 @@ ewpcap:close(Socket)
 
 ## DISABLING DIRTY SCHEDULER SUPPORT
 
-Use of the dirty scheduler can be disabled by setting a define:
+Use of the dirty scheduler can be disabled by setting an environment
+variable:
 
 ~~~
-CC="cc -DEWPCAP_DISABLE_DIRTY_SCHEDULER" rebar3 do clean, compile
+EWPCAP_DISABLE_DIRTY_SCHEDULER=1 rebar3 do clean, compile
 ~~~
 
 It is safe to disable for normal operation (but see "SCHEDULER LATENCY").

@@ -1,0 +1,57 @@
+Append = fun(Str, Flag) ->
+    string:join(sets:to_list(sets:add_element(Flag,
+                    sets:from_list(string:tokens(Str, " ")))), " ")
+end,
+
+Setenv = fun(_Key, "") ->
+                true;
+            (Key, Val) ->
+                Cur = os:getenv(Key, ""),
+                os:putenv(Key, Append(Cur, Val))
+end,
+
+EnvEnableDS = fun() ->
+    case os:getenv("EWPCAP_DISABLE_DIRTY_SCHEDULER") of
+        false ->
+            true;
+        _ ->
+            false
+    end
+end,
+
+VmEnableDS = fun() ->
+    try erlang:system_info(dirty_io_schedulers) of
+        _ ->
+            true
+    catch
+        _:_ ->
+            false
+    end
+end,
+
+%%
+%% Tests
+%%
+
+% Enable support for dirty schedulers
+DirtySched = fun(Config) ->
+    Env = EnvEnableDS(),
+    VM = VmEnableDS(),
+
+    Enable = Env and VM,
+
+    true = case Enable of
+        true ->
+            true;
+        false ->
+            Setenv("CFLAGS", "-DEWPCAP_DISABLE_DIRTY_SCHEDULER")
+    end,
+    Config
+end,
+
+lists:foldl(fun(Fun, Cfg) ->
+        Fun(Cfg)
+    end,
+    CONFIG,
+    [DirtySched]
+).
