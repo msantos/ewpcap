@@ -705,13 +705,15 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_open_live", 6, nif_pcap_open_live},
 #ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
     {"pcap_close", 1, nif_pcap_close},
+    {"pcap_lookupdev", 0, nif_pcap_lookupdev},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs},
 #else
     {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"pcap_lookupdev", 0, nif_pcap_lookupdev, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs, ERL_NIF_DIRTY_JOB_IO_BOUND},
 #endif
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
-    {"pcap_lookupdev", 0, nif_pcap_lookupdev},
-    {"pcap_findalldevs", 0, nif_pcap_findalldevs},
     {"pcap_stats", 1, nif_pcap_stats}
 };
 

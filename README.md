@@ -289,9 +289,3 @@ It is safe to disable for normal operation (but see "SCHEDULER LATENCY").
             resend(Socket).
 
 ## TODO
-
-* ewpcap, epcap, epcap\_compile ... confusing!
-
-* pcap\_sendpacket may block
-
-* pcap\_findalldevices blocks
