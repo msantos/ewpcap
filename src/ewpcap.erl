@@ -167,8 +167,15 @@ filter(#ewpcap_resource{res = Res}, Filter, Options)
     Optimize = bool(proplists:get_value(optimize, Options, true)),
     Netmask = mask(proplists:get_value(netmask, Options,
                                        ?PCAP_NETMASK_UNKNOWN)),
+    Limit = proplists:get_value(limit, Options, 8192),
 
-    pcap_compile(Res, Filter, Optimize, Netmask).
+    case iolist_size(Filter) < Limit orelse Limit < 0 of
+        true ->
+            pcap_compile(Res, Filter, Optimize, Netmask);
+        false ->
+            {error, enomem}
+    end.
+
 
 -spec loop(ewpcap_resource()) -> 'ok' | {'error', files:posix()}.
 loop(#ewpcap_resource{res = Res}) ->

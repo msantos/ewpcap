@@ -82,7 +82,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
                     | {to_ms, integer()}
                     | {buffer, integer()}
                     | {monitor, boolean()}
-                    | {filter, binary() | string()}
+                    | {filter, iolist()}
                     | FilterOpts
 
         Open a network interface and begin receiving packets.
@@ -147,12 +147,24 @@ SMP erlang must be enabled (erl -smp -pa ebin).
     filter(Socket, Filter, Options) -> ok | {error, Error}
 
         Types   Socket = resource()
+                Filter = iolist()
                 Error = enomem | string()
                 Options = [ Option ]
                 Option = {optimize, boolean()}
                     | {netmask, integer()}
+                    | {limit, integer()}
 
         Compile a PCAP filter and apply it to the PCAP descriptor.
+
+        Since the library passes the filter string to pcap\_compile(3PCAP)
+        directly, any bugs in pcap\_compile() may cause the Erlang VM
+        to crash. Do not use filters from untrusted sources.
+
+        Filters are limited to 8192 bytes by default since it may be
+        possible for very large filters to cause a stack overflow. For
+        example:
+
+            ewpcap:open(<<>>, [{filter, string:copies("ip and ", 50000) ++ "ip"}, {limit, -1}])
 
     read(Socket) -> {ok, Packet}
     read(Socket, Timeout) -> {ok, Packet} | {error, Error}
