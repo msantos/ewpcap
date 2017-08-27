@@ -45,6 +45,9 @@
         open_error2/1,
         close/1,
         resource/1,
+        error_filter/1,
+        large_filter1/1,
+        large_filter2/1,
         no_tests/1
     ]).
 
@@ -59,7 +62,8 @@ all() ->
     [{group, Priv}].
 
 groups() ->
-    [{priv, [], [sniff, getifaddrs, open_error, open_error2, close, resource]},
+    [{priv, [], [sniff, getifaddrs, open_error, open_error2, close, resource,
+                error_filter, large_filter1, large_filter2]},
         {nopriv, [], [open_error, open_error2]}].
 
 sniff(_Config) ->
@@ -121,6 +125,23 @@ resource_1() ->
         1000 ->
             ok
     end.
+
+error_filter(_Config) ->
+    Filter = "ip and ",
+    {error, Error} = ewpcap:open(<<>>, [{filter, Filter}]),
+    true = is_list(Error),
+    ok.
+
+large_filter1(_Config) ->
+    Filter = string:copies("ip and not ", 50000),
+    {error, Error} = ewpcap:open(<<>>, [{filter, Filter}, {limit, -1}]),
+    true = is_list(Error),
+    ok.
+
+large_filter2(_Config) ->
+    Filter = string:copies("ip and ", 50000) ++ "ip",
+    {error, enomem} = ewpcap:open(<<>>, [{filter, Filter}]),
+    ok.
 
 no_tests(_Config) ->
     {skip, "No tests"}.
