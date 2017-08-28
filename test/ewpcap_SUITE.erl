@@ -133,7 +133,7 @@ error_filter(_Config) ->
     ok.
 
 large_filter1(_Config) ->
-    Filter = string:copies("ip and not ", 50000),
+    Filter = string:copies("tcp and ", 50000) ++ "tcp",
     {error, Error} = ewpcap:open(<<>>, [{filter, Filter}, {limit, -1}]),
     true = is_list(Error),
     ok.
