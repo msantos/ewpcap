@@ -83,6 +83,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
                     | {buffer, integer()}
                     | {monitor, boolean()}
                     | {filter, iolist()}
+                    | {time_unit, timestamp | microsecond}
                     | FilterOpts
 
         Open a network interface and begin receiving packets.
@@ -106,6 +107,9 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
             * timeout set to 500 ms (see "SCHEDULER LATENCY")
 
+            * the time unit is an erlang timestamp in the same format
+              as now/0
+
             * no filter (all packets are received)
 
         If ewpcap is dropping packets (see stats/1), the PCAP buffer
@@ -113,6 +117,9 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
         Wireless devices can be set to use monitor mode (rfmon) by
         passing in the 'monitor' option.
+
+        The timestamp in the message can be formatted either as a now/0
+        tuple or returned in microseconds.
 
         For filter options, see filter/3.
 
@@ -126,7 +133,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
         e.g., ethernet, Linux cooked socket.
 
         The Time is a tuple in the same format as erlang:now/0, {MegaSecs,
-        Secs, MicroSecs}.
+        Secs, MicroSecs} or microseconds.
 
         The Length corresponds to the actual packet length on the
         wire. The captured packet may have been truncated. To get the

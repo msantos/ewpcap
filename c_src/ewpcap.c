@@ -72,6 +72,7 @@ typedef struct _ewpcap_state {
     ERL_NIF_TERM ref;
     pcap_t *p;
     int datalink;
+    int time_unit;
 } EWPCAP_STATE;
 
 typedef struct {
@@ -209,11 +210,16 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
             atom_ewpcap,
             enif_make_copy(ep->env, ep->ref),
             enif_make_int(ep->env, ep->datalink),
-            enif_make_tuple3(ep->env,
-                enif_make_ulong(ep->env, abs(h->ts.tv_sec / 1000000)),
-                enif_make_ulong(ep->env, h->ts.tv_sec % 1000000),
-                enif_make_ulong(ep->env, h->ts.tv_usec)
-                ),
+
+            ep->time_unit
+                ? enif_make_uint64(ep->env, (u_int64_t)h->ts.tv_sec * 1000000
+                    + (u_int64_t)h->ts.tv_usec)
+                : enif_make_tuple3(ep->env,
+                    enif_make_ulong(ep->env, abs(h->ts.tv_sec / 1000000)),
+                    enif_make_ulong(ep->env, h->ts.tv_sec % 1000000),
+                    enif_make_ulong(ep->env, h->ts.tv_usec)
+                    ),
+
             enif_make_ulong(ep->env, h->len),
             enif_make_binary(ep->env, &buf)
         )
@@ -261,6 +267,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     int to_ms = 0;
     int buffer_size = 0;
     int rfmon = 0;
+    int time_unit = 0;
     char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
     EWPCAP_STATE *ep = NULL;
@@ -287,6 +294,9 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (!enif_get_int(env, argv[5], &rfmon))
         return enif_make_badarg(env);
 
+    if (!enif_get_int(env, argv[6], &time_unit))
+        return enif_make_badarg(env);
+
     /* NULL terminate the device name */
     if (device.size > 0) {
         if (!enif_realloc_binary(&device, device.size+1))
@@ -302,6 +312,7 @@ nif_pcap_open_live(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
     (void)memset(ep, 0, sizeof(EWPCAP_STATE));
 
+    ep->time_unit = time_unit;
     ep->tid_state = EWPCAP_TID_INIT;
     ep->tid = enif_thread_self();
     (void)enif_self(env, &ep->pid);
@@ -702,7 +713,7 @@ ewpcap_free(ErlNifEnv *env, void *obj)
 
 static ErlNifFunc nif_funcs[] = {
     {"pcap_compile", 4, nif_pcap_compile},
-    {"pcap_open_live", 6, nif_pcap_open_live},
+    {"pcap_open_live", 7, nif_pcap_open_live},
 #ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
     {"pcap_close", 1, nif_pcap_close},
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},

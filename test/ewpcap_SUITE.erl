@@ -48,6 +48,7 @@
         error_filter/1,
         large_filter1/1,
         large_filter2/1,
+        time_unit/1,
         no_tests/1
     ]).
 
@@ -141,6 +142,20 @@ large_filter1(_Config) ->
 large_filter2(_Config) ->
     Filter = string:copies("ip and ", 50000) ++ "ip",
     {error, enomem} = ewpcap:open(<<>>, [{filter, Filter}]),
+    ok.
+
+time_unit(_Config) ->
+    {ok, Ifname} = ewpcap:dev(),
+    {ok, Socket} = ewpcap:open(Ifname, [
+                                        {time_unit, microsecond},
+                                        {filter, "tcp and port 39"}|opt()
+                                       ]),
+    gen_tcp:connect({8,8,8,8}, 39, [binary], 100),
+    {ok, #ewpcap{time = Time}} = ewpcap:read(Socket),
+
+    Micro = erlang:system_time(microsecond) div 1000000,
+    Micro = Time div 1000000,
+
     ok.
 
 no_tests(_Config) ->

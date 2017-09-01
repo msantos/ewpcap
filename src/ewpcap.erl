@@ -65,7 +65,7 @@ on_load() ->
 pcap_compile(_, _, _, _) ->
     erlang:nif_error(not_implemented).
 
-pcap_open_live(_, _, _, _, _, _) ->
+pcap_open_live(_, _, _, _, _, _, _) ->
     erlang:nif_error(not_implemented).
 
 pcap_close(_) ->
@@ -90,13 +90,15 @@ pcap_stats(_) ->
 %%--------------------------------------------------------------------
 %%% API
 %%--------------------------------------------------------------------
+-type time_unit() :: timestamp | microsecond.
 -type open_options() :: [
     {snaplen, non_neg_integer()} |
     {promisc, boolean()} |
     {to_ms, non_neg_integer()} |
     {filter, iodata()} |
     {buffer, non_neg_integer()} |
-    {monitor, boolean()}
+    {monitor, boolean()} |
+    {time_unit, time_unit()}
 ].
 
 -spec open() -> {'ok', ewpcap_resource()} | {'error', string() | 'enomem'}.
@@ -122,8 +124,10 @@ open(Dev, Options) when is_list(Options) ->
     Filter = proplists:get_value(filter, Options, <<>>),
     Buffer = proplists:get_value(buffer, Options, 0),
     Monitor = bool(proplists:get_value(monitor, Options, false)),
+    TimeUnit = time_unit(proplists:get_value(time_unit, Options, timestamp)),
 
-    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor) of
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor, TimeUnit)
+    of
         {ok, Socket} ->
             open_1(Socket, Options, Filter);
         Error ->
@@ -240,6 +244,9 @@ addr([N|T], Attr) ->
 %%--------------------------------------------------------------------
 bool(true) -> 1;
 bool(false) -> 0.
+
+time_unit(timestamp) -> 0;
+time_unit(microsecond) -> 1.
 
 mask(N) when is_integer(N) -> N;
 mask({A,B,C,D}) -> (A bsl 24) bor (B bsl 16) bor (C bsl 8) bor D.

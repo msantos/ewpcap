@@ -33,8 +33,10 @@
 -record(ewpcap, {
         ref :: reference(),             % socket identifier
         dlt :: integer(),               % datalink type
-        time :: {non_neg_integer(),non_neg_integer(),non_neg_integer()},
+        time :: {non_neg_integer(),non_neg_integer(),non_neg_integer()}
+                | non_neg_integer(),
                                         % time: {MegaSecs, Secs, MicroSecs}
+                                        %       | microseconds
         length :: non_neg_integer(),    % actual packet length
                                         %  (data may be truncated)
         packet :: binary()              % packet
