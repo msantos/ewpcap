@@ -48,7 +48,8 @@
         error_filter/1,
         large_filter1/1,
         large_filter2/1,
-        time_unit/1,
+        microsecond/1,
+        timestamp/1,
         no_tests/1
     ]).
 
@@ -64,7 +65,8 @@ all() ->
 
 groups() ->
     [{priv, [], [sniff, getifaddrs, open_error, open_error2, close, resource,
-                error_filter, large_filter1, large_filter2]},
+                error_filter, large_filter1, large_filter2,
+                microsecond, timestamp]},
         {nopriv, [], [open_error, open_error2]}].
 
 sniff(_Config) ->
@@ -144,17 +146,44 @@ large_filter2(_Config) ->
     {error, enomem} = ewpcap:open(<<>>, [{filter, Filter}]),
     ok.
 
-time_unit(_Config) ->
-    {ok, Ifname} = ewpcap:dev(),
-    {ok, Socket} = ewpcap:open(Ifname, [
+microsecond(_Config) ->
+    error_logger:info_report([{see, this}]),
+    {ok, Socket} = ewpcap:open(<<>>, [
                                         {time_unit, microsecond},
                                         {filter, "tcp and port 39"}|opt()
                                        ]),
-    gen_tcp:connect({8,8,8,8}, 39, [binary], 100),
-    {ok, #ewpcap{time = Time}} = ewpcap:read(Socket),
 
-    Micro = erlang:system_time(microsecond) div 1000000,
-    Micro = Time div 1000000,
+    spawn_link(fun() -> receive Socket -> ok end end),
+
+    [ gen_tcp:connect({8,8,8,8}, 39, [binary], 1) || _ <- lists:seq(1,10) ],
+
+    Time = receive
+        {ewpcap, _Ref, _DLT, TS, _Length, _Packet} ->
+            TS
+    end,
+
+    % +/- 10 seconds
+    0 = (erlang:system_time(second) div 10) - (Time div 10000000),
+
+    ok.
+
+timestamp(_Config) ->
+    {ok, Socket} = ewpcap:open(<<>>, [
+                                        {time_unit, timestamp},
+                                        {filter, "tcp and port 39"}|opt()
+                                       ]),
+
+    spawn_link(fun() -> receive Socket -> ok end end),
+
+    [ gen_tcp:connect({8,8,8,8}, 39, [binary], 1) || _ <- lists:seq(1,10) ],
+
+    {TSMega, TSSec, _} = receive
+        {ewpcap, _Ref, _DLT, TS, _Length, _Packet} ->
+            TS
+    end,
+
+    % +/- 10 seconds
+    0 = (erlang:system_time(second) div 10) - ((TSMega * 1000000 + TSSec) div 10),
 
     ok.
 

@@ -1,6 +1,6 @@
 {application, ewpcap,
     [{description, "PCAP NIF interface"},
-    {vsn, "0.2.3"},
+    {vsn, "1.0.0"},
     {applications, [kernel, stdlib]}
 ]}.
 
