@@ -1,7 +1,12 @@
 {application, ewpcap,
     [{description, "PCAP NIF interface"},
     {vsn, "1.0.1"},
+    {applications, [kernel, stdlib]},
+
     {licenses, ["BSD-3"]},
-    {applications, [kernel, stdlib]}
+    {maintainers, ["Michael Santos"]},
+    {links, [
+        {"Github", "https://github.com/msantos/ewpcap"}
+    ]}
 ]}.
 
