@@ -34,6 +34,7 @@
 -include("ewpcap.hrl").
 
 -export([
+        suite/0,
         all/0,
         groups/0
     ]).
@@ -53,6 +54,9 @@
         no_tests/1
     ]).
 
+suite() ->
+  Timeout = list_to_integer(os:getenv("EWPCAP_TEST_TIMEOUT", "60")),
+  [{timetrap, {seconds, Timeout}}].
 
 all() ->
     Priv = case ewpcap:getifaddrs() of
@@ -147,7 +151,6 @@ large_filter2(_Config) ->
     ok.
 
 microsecond(_Config) ->
-    error_logger:info_report([{see, this}]),
     {ok, Socket} = ewpcap:open(<<>>, [
                                         {time_unit, microsecond},
                                         {filter, "tcp and port 39"}|opt()
