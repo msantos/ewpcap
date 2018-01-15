@@ -215,7 +215,7 @@ ewpcap_send(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
                 ? enif_make_uint64(ep->env, (u_int64_t)h->ts.tv_sec * 1000000
                     + (u_int64_t)h->ts.tv_usec)
                 : enif_make_tuple3(ep->env,
-                    enif_make_ulong(ep->env, abs(h->ts.tv_sec / 1000000)),
+                    enif_make_ulong(ep->env, (unsigned long)h->ts.tv_sec / 1000000),
                     enif_make_ulong(ep->env, h->ts.tv_sec % 1000000),
                     enif_make_ulong(ep->env, h->ts.tv_usec)
                     ),
