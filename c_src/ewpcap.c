@@ -719,9 +719,9 @@ static ErlNifFunc nif_funcs[] = {
     {"pcap_lookupdev", 0, nif_pcap_lookupdev},
     {"pcap_findalldevs", 0, nif_pcap_findalldevs},
 #else
-    {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
-    {"pcap_lookupdev", 0, nif_pcap_lookupdev, ERL_NIF_DIRTY_JOB_IO_BOUND},
-    {"pcap_findalldevs", 0, nif_pcap_findalldevs, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_CPU_BOUND},
+    {"pcap_lookupdev", 0, nif_pcap_lookupdev, ERL_NIF_DIRTY_JOB_CPU_BOUND},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs, ERL_NIF_DIRTY_JOB_CPU_BOUND},
 #endif
     {"pcap_loop", 1, nif_pcap_loop},
     {"pcap_sendpacket", 2, nif_pcap_sendpacket},
