@@ -630,6 +630,8 @@ nif_pcap_compile(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
                 atom_error,
                 enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
 
+    pcap_freecode(&fp);
+
     return atom_ok;
 }
 
