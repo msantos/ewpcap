@@ -1,4 +1,4 @@
-%% Copyright (c) 2012-2017, Michael Santos <michael.santos@gmail.com>
+%% Copyright (c) 2012-2020, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -31,69 +31,51 @@
 -module(ewpcap_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
+
 -include("ewpcap.hrl").
 
--export([
-        suite/0,
-        all/0,
-        groups/0
-    ]).
+-export([suite/0, all/0, groups/0]).
 
--export([
-        sniff/1,
-        getifaddrs/1,
-        open_error/1,
-        open_error2/1,
-        close/1,
-        resource/1,
-        error_filter/1,
-        large_filter1/1,
-        large_filter2/1,
-        microsecond/1,
-        timestamp/1,
-        no_tests/1
-    ]).
+-export([sniff/1, getifaddrs/1, open_error/1, open_error2/1, close/1,
+         resource/1, error_filter/1, large_filter1/1, large_filter2/1, microsecond/1,
+         timestamp/1, no_tests/1]).
 
 suite() ->
-  Timeout = list_to_integer(os:getenv("EWPCAP_TEST_TIMEOUT", "60")),
-  [{timetrap, {seconds, Timeout}}].
+    Timeout = list_to_integer(os:getenv("EWPCAP_TEST_TIMEOUT", "60")),
+    [{timetrap, {seconds, Timeout}}].
 
 all() ->
     Priv = case ewpcap:getifaddrs() of
-        {ok, []} ->
-            nopriv;
-        {ok, _Iflist} ->
-            priv
-    end,
+             {ok, []} -> nopriv;
+             {ok, _Iflist} -> priv
+           end,
     [{group, Priv}].
 
 groups() ->
-    [{priv, [], [sniff, getifaddrs, open_error, open_error2, close, resource,
-                error_filter, large_filter1, large_filter2,
-                microsecond, timestamp]},
-        {nopriv, [], [open_error, open_error2]}].
+    [{priv, [],
+      [sniff, getifaddrs, open_error, open_error2, close, resource, error_filter,
+       large_filter1, large_filter2, microsecond, timestamp]},
+     {nopriv, [], [open_error, open_error2]}].
 
 sniff(_Config) ->
     {ok, Ifname} = ewpcap:dev(),
-    {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"}|opt()]),
-
+    {ok, Socket} = ewpcap:open(Ifname, [{filter, "tcp and port 29"} | opt()]),
     {error, eagain} = ewpcap:read(Socket, 100),
-    gen_tcp:connect({8,8,8,8}, 29, [binary], 100),
+    gen_tcp:connect({8, 8, 8, 8}, 29, [binary], 100),
     {ok, Packet} = ewpcap:read(Socket),
-
     error_logger:info_report([{got, Packet}]),
-
     ok.
 
 getifaddrs(_Config) ->
     case os:type() of
-        {unix, _} ->
-            {ok, Iflist1} = ewpcap:getifaddrs(),
-            {ok, Iflist2} = inet:getifaddrs(),
-            ifcmp(Iflist1, Iflist2);
-        _ ->
-            {skip, "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0"
-                   " may differ on this platorm"}
+      {unix, _} ->
+          {ok, Iflist1} = ewpcap:getifaddrs(),
+          {ok, Iflist2} = inet:getifaddrs(),
+          ifcmp(Iflist1, Iflist2);
+      _ ->
+          {skip,
+           "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0 "
+           "may differ on this platorm"}
     end.
 
 open_error(_Config) ->
@@ -107,7 +89,7 @@ open_error2(_Config) ->
     ok.
 
 close(_Config) ->
-    {ok, Socket} = ewpcap:open(<<>>, [{filter, "tcp and port 80"}|opt()]),
+    {ok, Socket} = ewpcap:open(<<>>, [{filter, "tcp and port 80"} | opt()]),
     ok = ewpcap:close(Socket),
     {'EXIT', {badarg, _}} = (catch ewpcap:close(Socket)),
     {'EXIT', {badarg, _}} = (catch ewpcap:write(Socket, <<"badarg">>)),
@@ -116,21 +98,16 @@ close(_Config) ->
 % If no reference to the socket resource exists, the thread running the
 % packet dump should be stopped and the pcap structure freed.
 resource(_Config) ->
-    spawn(fun() -> ewpcap:open(<<>>, [{filter, "tcp or udp"}|opt()]) end),
-
-    {ok, _Socket} = ewpcap:open(<<>>, [{filter, "tcp or udp"}|opt()]),
+    spawn(fun () -> ewpcap:open(<<>>, [{filter, "tcp or udp"} | opt()]) end),
+    {ok, _Socket} = ewpcap:open(<<>>, [{filter, "tcp or udp"} | opt()]),
     % Socket resource will be released
     resource_1().
 
 resource_1() ->
     receive
-        {ewpcap, _Ref, _DatalinkType, _Time, _ActualLength, _Packet} ->
-            resource_1();
-        {ewpcap_error, _Ref, Error} ->
-            {error, Error}
-    after
-        1000 ->
-            ok
+      {ewpcap, _Ref, _DatalinkType, _Time, _ActualLength, _Packet} -> resource_1();
+      {ewpcap_error, _Ref, Error} -> {error, Error}
+      after 1000 -> ok
     end.
 
 error_filter(_Config) ->
@@ -151,73 +128,51 @@ large_filter2(_Config) ->
     ok.
 
 microsecond(_Config) ->
-    {ok, Socket} = ewpcap:open(<<>>, [
-                                        {time_unit, microsecond},
-                                        {filter, "tcp and port 39"}|opt()
-                                       ]),
-
-    spawn_link(fun() -> receive Socket -> ok end end),
-
-    [ gen_tcp:connect({8,8,8,8}, 39, [binary], 1) || _ <- lists:seq(1,10) ],
-
-    Time = receive
-        {ewpcap, _Ref, _DLT, TS, _Length, _Packet} ->
-            TS
-    end,
-
+    {ok, Socket} = ewpcap:open(<<>>,
+                               [{time_unit, microsecond}, {filter, "tcp and port 39"} | opt()]),
+    spawn_link(fun () -> receive Socket -> ok end end),
+    [gen_tcp:connect({8, 8, 8, 8}, 39, [binary], 1) || _ <- lists:seq(1, 10)],
+    Time = receive {ewpcap, _Ref, _DLT, TS, _Length, _Packet} -> TS end,
     % +/- 10 seconds
-    0 = (erlang:system_time(second) div 10) - (Time div 10000000),
-
+    0 = erlang:system_time(second) div 10 - Time div 10000000,
     ok.
 
 timestamp(_Config) ->
-    {ok, Socket} = ewpcap:open(<<>>, [
-                                        {time_unit, timestamp},
-                                        {filter, "tcp and port 39"}|opt()
-                                       ]),
-
-    spawn_link(fun() -> receive Socket -> ok end end),
-
-    [ gen_tcp:connect({8,8,8,8}, 39, [binary], 1) || _ <- lists:seq(1,10) ],
-
+    {ok, Socket} = ewpcap:open(<<>>,
+                               [{time_unit, timestamp}, {filter, "tcp and port 39"} | opt()]),
+    spawn_link(fun () -> receive Socket -> ok end end),
+    [gen_tcp:connect({8, 8, 8, 8}, 39, [binary], 1) || _ <- lists:seq(1, 10)],
     {TSMega, TSSec, _} = receive
-        {ewpcap, _Ref, _DLT, TS, _Length, _Packet} ->
-            TS
-    end,
-
+                           {ewpcap, _Ref, _DLT, TS, _Length, _Packet} -> TS
+                         end,
     % +/- 10 seconds
-    0 = (erlang:system_time(second) div 10) - ((TSMega * 1000000 + TSSec) div 10),
-
+    0 = erlang:system_time(second) div 10 - (TSMega * 1000000 + TSSec) div 10,
     ok.
 
-no_tests(_Config) ->
-    {skip, "No tests"}.
+no_tests(_Config) -> {skip, "No tests"}.
 
 ifcmp(Iflist1, Iflist2) ->
     % Get the common interfaces
     Ifs1 = sets:from_list(proplists:get_keys(Iflist1)),
     Ifs2 = sets:from_list(proplists:get_keys(Iflist2)),
-
     Ifs = sets:intersection(Ifs1, Ifs2),
-
     error_logger:info_report([{ifaces, sets:to_list(Ifs)}]),
-
-    [ ifattr(Key, Ifs, Iflist1, Iflist2) ||
-        Key <- [addr, netmask, broadaddr, dstaddr] ].
+    [ifattr(Key, Ifs, Iflist1, Iflist2)
+     || Key <- [addr, netmask, broadaddr, dstaddr]].
 
 ifattr(Key, Ifs, Iflist1, Iflist2) ->
-    [ begin
-            R = if_value(Key, Ifname, Iflist1),
-            R = if_value(Key, Ifname, Iflist2)
-        end || Ifname <- sets:to_list(Ifs) ].
+    [begin
+       R = if_value(Key, Ifname, Iflist1), R = if_value(Key, Ifname, Iflist2)
+     end
+     || Ifname <- sets:to_list(Ifs)].
 
 % Assumes sorting is the same
 if_value(Key, Ifname, Ifattr) ->
-    Attr = proplists:get_value(Ifname, Ifattr),
-    proplists:get_all_values(Key, Attr).
+    Attr = proplists:get_value(Ifname, Ifattr), proplists:get_all_values(Key, Attr).
 
 opt() ->
     case os:type() of
-        {unix, sunos} -> [promisc];
-        _ -> []
+      {unix, sunos} -> [promisc];
+      _ -> []
     end.
+
