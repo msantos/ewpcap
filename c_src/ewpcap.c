@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2019, Michael Santos <michael.santos@gmail.com>
+/* Copyright (c) 2012-2020, Michael Santos <michael.santos@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@
 #endif
 
 #include "erl_nif.h"
+
 #include "erl_driver.h"
 
 #if defined(WIN32) || defined(__WIN32__) || defined(__WIN32)
