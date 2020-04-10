@@ -13,12 +13,6 @@ Unix system, you may want to use one of these projects instead:
 
 * epcap : https://github.com/msantos/epcap
 
-The ewpcap interface will still go through some changes. For example,
-the function names may change as may the packet tuple.
-
-ewpcap hasn't been heavily tested.
-
-
 ## REQUIREMENTS
 
 * libpcap/winpcap
@@ -51,7 +45,6 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 ## COMPILING
 
     rebar3 do clean, compile, ct
-
 
 ## DATA TYPES
 
