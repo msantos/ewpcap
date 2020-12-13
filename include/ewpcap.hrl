@@ -1,21 +1,21 @@
 %% Copyright (c) 2012-2014, Michael Santos <michael.santos@gmail.com>
 %% All rights reserved.
-%% 
+%%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
 %% are met:
-%% 
+%%
 %% Redistributions of source code must retain the above copyright
 %% notice, this list of conditions and the following disclaimer.
-%% 
+%%
 %% Redistributions in binary form must reproduce the above copyright
 %% notice, this list of conditions and the following disclaimer in the
 %% documentation and/or other materials provided with the distribution.
-%% 
+%%
 %% Neither the name of the author nor the names of its contributors
 %% may be used to endorse or promote products derived from this software
 %% without specific prior written permission.
-%% 
+%%
 %% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 %% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 %% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -31,26 +31,37 @@
 
 % Packet format in message
 -record(ewpcap, {
-        ref :: reference(),             % socket identifier
-        dlt :: integer(),               % datalink type
-        time :: {non_neg_integer(),non_neg_integer(),non_neg_integer()}
-                | non_neg_integer(),
-                                        % time: {MegaSecs, Secs, MicroSecs}
-                                        %       | microseconds
-        length :: non_neg_integer(),    % actual packet length
-                                        %  (data may be truncated)
-        packet :: binary()              % packet
-        }).
+    % socket identifier
+    ref :: reference(),
+    % datalink type
+    dlt :: integer(),
+    time ::
+        {non_neg_integer(), non_neg_integer(), non_neg_integer()}
+        | non_neg_integer(),
+    % time: {MegaSecs, Secs, MicroSecs}
+    %       | microseconds
+
+    % actual packet length
+    length :: non_neg_integer(),
+    %  (data may be truncated)
+
+    % packet
+    packet :: binary()
+}).
 
 -record(ewpcap_resource, {
-        ref :: reference(),
-        res :: any()
-        }).
+    ref :: reference(),
+    res :: any()
+}).
 
 -record(ewpcap_stat, {
-        recv :: integer(),      % number of packets received
-        drop :: integer(),      % number of packets dropped
-        ifdrop :: integer(),    % number of packets dropped by interface
-        capt :: integer()       % Win32: number of packets that reach
-                                %  the application
-        }).
+    % number of packets received
+    recv :: integer(),
+    % number of packets dropped
+    drop :: integer(),
+    % number of packets dropped by interface
+    ifdrop :: integer(),
+    % Win32: number of packets that reach
+    capt :: integer()
+    %  the application
+}).
