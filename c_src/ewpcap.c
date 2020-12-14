@@ -243,6 +243,7 @@ static ERL_NIF_TERM nif_pcap_open_live(ErlNifEnv *env, int argc,
   int buffer_size = 0;
   int rfmon = 0;
   int time_unit = 0;
+  int immediate;
   char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
   EWPCAP_STATE *ep = NULL;
@@ -270,6 +271,9 @@ static ERL_NIF_TERM nif_pcap_open_live(ErlNifEnv *env, int argc,
     return enif_make_badarg(env);
 
   if (!enif_get_int(env, argv[6], &time_unit))
+    return enif_make_badarg(env);
+
+  if (!enif_get_int(env, argv[7], &immediate))
     return enif_make_badarg(env);
 
   /* NULL terminate the device name */
@@ -309,6 +313,9 @@ static ERL_NIF_TERM nif_pcap_open_live(ErlNifEnv *env, int argc,
 
   /* Set timeout */
   (void)pcap_set_timeout(ep->p, to_ms);
+
+  /* Set immediate mode: if true, disables timeout */
+  (void)pcap_set_immediate_mode(ep->p, immediate);
 
   /* Set buffer size */
   if (buffer_size > 0)
@@ -658,7 +665,7 @@ void ewpcap_free(ErlNifEnv *env, void *obj) {
 #endif
 
 static ErlNifFunc nif_funcs[] = {{"pcap_compile", 4, nif_pcap_compile},
-                                 {"pcap_open_live", 7, nif_pcap_open_live},
+                                 {"pcap_open_live", 8, nif_pcap_open_live},
 #ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
                                  {"pcap_close", 1, nif_pcap_close},
                                  {"pcap_lookupdev", 0, nif_pcap_lookupdev},

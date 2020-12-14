@@ -65,7 +65,7 @@ on_load() ->
 
 pcap_compile(_, _, _, _) -> erlang:nif_error(not_implemented).
 
-pcap_open_live(_, _, _, _, _, _, _) -> erlang:nif_error(not_implemented).
+pcap_open_live(_, _, _, _, _, _, _, _) -> erlang:nif_error(not_implemented).
 
 pcap_close(_) -> erlang:nif_error(not_implemented).
 
@@ -92,6 +92,7 @@ pcap_stats(_) -> erlang:nif_error(not_implemented).
     | {buffer, non_neg_integer()}
     | {monitor, boolean()}
     | {time_unit, time_unit()}
+    | {immediate, boolean()}
 ].
 
 -spec open() -> {ok, ewpcap_resource()} | {error, string() | enomem}.
@@ -116,7 +117,8 @@ open(Dev, Options) when is_list(Options) ->
     Buffer = proplists:get_value(buffer, Options, 0),
     Monitor = bool(proplists:get_value(monitor, Options, false)),
     TimeUnit = time_unit(proplists:get_value(time_unit, Options, timestamp)),
-    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor, TimeUnit) of
+    Immediate = bool(proplists:get_value(immediate, Options, true)),
+    case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor, TimeUnit, Immediate) of
         {ok, Socket} -> open_1(Socket, Options, Filter);
         Error -> Error
     end.
