@@ -46,6 +46,9 @@
 
 -define(DLT_EN10MB, 1).
 
+% (1 bsl 31) - 1.
+-define(INT32_MAX, 2147483647).
+
 -type ewpcap_resource() :: #ewpcap_resource{}.
 
 -type ewpcap_stat() :: #ewpcap_stat{}.
@@ -93,6 +96,7 @@ pcap_stats(_) -> erlang:nif_error(not_implemented).
     | {monitor, boolean()}
     | {time_unit, time_unit()}
     | {immediate, boolean()}
+    | {timeout, immediate | infinity | non_neg_integer()}
 ].
 
 -spec open() -> {ok, ewpcap_resource()} | {error, string() | enomem}.
@@ -110,14 +114,22 @@ open(<<>>, Options) ->
         Error -> Error
     end;
 open(Dev, Options) when is_list(Options) ->
+    Timeout = proplists:get_value(timeout, Options, immediate),
+    {Immediate0, To_ms0} =
+        case Timeout of
+            % dummy value: timeout value is ignored
+            immediate -> {true, 500};
+            infinity -> {false, ?INT32_MAX};
+            _ when is_integer(Timeout) -> {false, Timeout}
+        end,
     Snaplen = proplists:get_value(snaplen, Options, 65535),
     Promisc = bool(proplists:get_value(promisc, Options, false)),
-    To_ms = proplists:get_value(to_ms, Options, 500),
+    To_ms = proplists:get_value(to_ms, Options, To_ms0),
     Filter = proplists:get_value(filter, Options, <<>>),
     Buffer = proplists:get_value(buffer, Options, 0),
     Monitor = bool(proplists:get_value(monitor, Options, false)),
     TimeUnit = time_unit(proplists:get_value(time_unit, Options, timestamp)),
-    Immediate = bool(proplists:get_value(immediate, Options, true)),
+    Immediate = bool(proplists:get_value(immediate, Options, Immediate0)),
     case pcap_open_live(Dev, Snaplen, Promisc, To_ms, Buffer, Monitor, TimeUnit, Immediate) of
         {ok, Socket} -> open_1(Socket, Options, Filter);
         Error -> Error

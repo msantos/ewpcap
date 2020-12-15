@@ -72,7 +72,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
                 Options = [ Option ]
                 Option = {promisc, boolean()}
                     | {snaplen, integer()}
-                    | {to_ms, integer()}
+                    | {timeout, immediate | infinity | non_neg_integer()}
                     | {buffer, integer()}
                     | {monitor, boolean()}
                     | {filter, iolist()}
@@ -98,7 +98,7 @@ SMP erlang must be enabled (erl -smp -pa ebin).
 
             * a snaplen (packet length) of 65535 bytes
 
-            * timeout set to 500 ms (see "SCHEDULER LATENCY")
+            * uses immediate mode
 
             * the time unit is an erlang timestamp in the same format
               as now/0
@@ -264,7 +264,7 @@ However, if you need to do it, there are some workarounds:
 
 ~~~
 % Set timeout to 1 ms
-ewpcap:open(<<>>, [{filter, "tcp"}, {to_ms, 1}]).
+ewpcap:open(<<>>, [{filter, "tcp"}, {timeout, 1}]).
 ~~~
 
 * explicitly do resource cleanup on a dirty scheduler
