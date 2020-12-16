@@ -158,6 +158,14 @@ static void unload(ErlNifEnv *env, void *priv_data) {
   }
 }
 
+#ifndef PCAP_ERROR
+#define PCAP_ERROR -1
+#endif
+
+#ifndef PCAP_ERROR_BREAK
+#define PCAP_ERROR_BREAK -2
+#endif
+
 void *ewpcap_loop(void *arg) {
   EWPCAP_STATE *ep = arg;
   int rv = 0;
@@ -165,10 +173,10 @@ void *ewpcap_loop(void *arg) {
   rv = pcap_loop(ep->p, -1 /* loop forever */, ewpcap_send, (u_char *)ep);
 
   switch (rv) {
-  case -2:
+  case PCAP_ERROR_BREAK:
     /* break requested using pcap_breakloop */
     break;
-  case -1:
+  case PCAP_ERROR:
     ewpcap_error(ep, pcap_geterr(ep->p));
     break;
 

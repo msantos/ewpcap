@@ -31,16 +31,11 @@ ewpcap requires beam to be running with root privileges:
 
     * using sudo
 
-        sudo erl -smp -pa ebin
+        sudo erl -pa ebin
 
     * using capabilities
 
         setcap cap_net_raw=ep /path/to/beam.smp
-
-* SMP
-
-SMP erlang must be enabled (erl -smp -pa ebin).
-
 
 ## COMPILING
 
@@ -104,6 +99,13 @@ SMP erlang must be enabled (erl -smp -pa ebin).
               as now/0
 
             * no filter (all packets are received)
+
+        The `timeout` option sets `pcap_set_timeout(3PCAP)` and
+        `pcap_set_immediate_mode(3PCAP)`. By default, ewpcap uses
+        `immediate` mode and returns packets as they are received.
+        Setting timeout to an integer value disables `immediate` mode
+        and buffers any packets until either the timeout is reached or
+        the buffer is filled.
 
         If ewpcap is dropping packets (see stats/1), the PCAP buffer
         size can be increased (should be some multiple of the snaplen).
