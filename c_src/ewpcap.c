@@ -212,8 +212,9 @@ void ewpcap_send(u_char *user, const struct pcap_pkthdr *h,
                     ep->env,
                     enif_make_ulong(ep->env,
                                     (unsigned long)h->ts.tv_sec / 1000000),
-                    enif_make_ulong(ep->env, h->ts.tv_sec % 1000000),
-                    enif_make_ulong(ep->env, h->ts.tv_usec)),
+                    enif_make_ulong(ep->env,
+                                    (unsigned long)h->ts.tv_sec % 1000000),
+                    enif_make_ulong(ep->env, (unsigned long)h->ts.tv_usec)),
 
           enif_make_ulong(ep->env, h->len), enif_make_binary(ep->env, &buf)));
 
@@ -613,7 +614,10 @@ static ERL_NIF_TERM nif_pcap_sendpacket(ErlNifEnv *env, int argc,
   if (!enif_inspect_iolist_as_binary(env, argv[1], &buf))
     return enif_make_badarg(env);
 
-  if (pcap_sendpacket(ep->p, buf.data, buf.size) < 0)
+  if (buf.size >= INT32_MAX)
+    return enif_make_badarg(env);
+
+  if (pcap_sendpacket(ep->p, buf.data, (int)buf.size) < 0)
     return enif_make_tuple2(
         env, atom_error,
         enif_make_string(env, pcap_geterr(ep->p), ERL_NIF_LATIN1));
