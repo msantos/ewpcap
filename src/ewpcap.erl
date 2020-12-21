@@ -72,8 +72,6 @@ pcap_open_live(_, _, _, _, _, _, _, _) -> erlang:nif_error(not_implemented).
 
 pcap_close(_) -> erlang:nif_error(not_implemented).
 
-pcap_lookupdev() -> erlang:nif_error(not_implemented).
-
 pcap_findalldevs() -> erlang:nif_error(not_implemented).
 
 pcap_loop(_) -> erlang:nif_error(not_implemented).
@@ -223,6 +221,14 @@ addr([N | T], Attr) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+pcap_lookupdev() ->
+    case getifaddrs() of
+        {ok, [{If, _} | _]} ->
+            {ok, If};
+        {error, _} = Error ->
+            Error
+    end.
+
 bool(true) -> 1;
 bool(false) -> 0.
 

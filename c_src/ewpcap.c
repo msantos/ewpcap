@@ -386,21 +386,6 @@ static ERL_NIF_TERM nif_pcap_close(ErlNifEnv *env, int argc,
   return atom_ok;
 }
 
-static ERL_NIF_TERM nif_pcap_lookupdev(ErlNifEnv *env, int argc,
-                                       const ERL_NIF_TERM argv[]) {
-  char *dev = NULL;
-  char errbuf[PCAP_ERRBUF_SIZE] = {0};
-
-  dev = pcap_lookupdev(errbuf);
-
-  if (dev == NULL)
-    return enif_make_tuple2(env, atom_error,
-                            enif_make_string(env, errbuf, ERL_NIF_LATIN1));
-
-  return enif_make_tuple2(env, atom_ok,
-                          enif_make_string(env, dev, ERL_NIF_LATIN1));
-}
-
 #define MAKE_ADDR(env, attr, key, addrp)                                       \
   do {                                                                         \
     ErlNifBinary buf = {0};                                                    \
@@ -680,12 +665,9 @@ static ErlNifFunc nif_funcs[] = {{"pcap_compile", 4, nif_pcap_compile},
                                  {"pcap_open_live", 8, nif_pcap_open_live},
 #ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
                                  {"pcap_close", 1, nif_pcap_close},
-                                 {"pcap_lookupdev", 0, nif_pcap_lookupdev},
                                  {"pcap_findalldevs", 0, nif_pcap_findalldevs},
 #else
                                  {"pcap_close", 1, nif_pcap_close,
-                                  ERL_NIF_DIRTY_JOB_CPU_BOUND},
-                                 {"pcap_lookupdev", 0, nif_pcap_lookupdev,
                                   ERL_NIF_DIRTY_JOB_CPU_BOUND},
                                  {"pcap_findalldevs", 0, nif_pcap_findalldevs,
                                   ERL_NIF_DIRTY_JOB_CPU_BOUND},
