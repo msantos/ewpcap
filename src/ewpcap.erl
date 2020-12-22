@@ -97,12 +97,97 @@ pcap_stats(_) -> erlang:nif_error(not_implemented).
     | {timeout, immediate | infinity | non_neg_integer()}
 ].
 
+% @doc Open a network interface using the default device.
+%
+% open/0 defaults to:
+%
+%     * promiscuous mode disabled
+%
+%     * a snaplen (packet length) of 65535 bytes
+%
+%     * uses immediate mode
+%
+%     * the time unit is an erlang timestamp in the same format
+%       as now/0
+%
+%     * no filter (all packets are received)
+%
+% See `open/2`.
 -spec open() -> {ok, ewpcap_resource()} | {error, string() | enomem}.
 open() -> open(<<>>, []).
 
+% @doc Open a network interface using the specified device.
+%
+% open/1 defaults to:
+%
+%     * promiscuous mode disabled
+%
+%     * a snaplen (packet length) of 65535 bytes
+%
+%     * uses immediate mode
+%
+%     * the time unit is an erlang timestamp in the same format
+%       as now/0
+%
+%     * no filter (all packets are received)
+%
+% See `open/2`.
 -spec open(iodata()) -> {ok, ewpcap_resource()} | {error, string() | enomem}.
 open(Dev) -> open(Dev, []).
 
+% @doc Open a network interface and begin receiving packets.
+%
+% The returned Socket in the 'ok' tuple must be kept by the
+% process. When the socket goes out of scope, the pcap filter will
+% be shut down and all resources associated with the socket will
+% be freed. See also close/1.
+%
+% Dev is the name of the network device. If an empty binary (<<>>)
+% is passed in, pcap will select a default interface.
+%
+% If an error occurs, the PCAP string describing the error is
+% returned to the caller.
+%
+% The `timeout` option sets `pcap_set_timeout(3PCAP)` and
+% `pcap_set_immediate_mode(3PCAP)`. By default, ewpcap uses
+% `immediate` mode and returns packets as they are received.
+% Setting timeout to an integer value disables `immediate` mode
+% and buffers any packets until either the timeout is reached or
+% the buffer is filled.
+%
+% If ewpcap is dropping packets (see stats/1), the PCAP buffer
+% size can be increased (should be some multiple of the snaplen).
+%
+% Wireless devices can be set to use monitor mode (rfmon) by
+% passing in the 'monitor' option.
+%
+% The timestamp in the message can be formatted either as a now/0
+% tuple or returned in microseconds.
+%
+% For filter options, see filter/3.
+%
+% Packets are returned as messages to the caller:
+%
+%     {ewpcap, Ref, DatalinkType, Time, Length, Packet}
+%
+% Ref is a reference identifying the socket handle.
+%
+% The DataLinkType is an integer representing the link layer,
+% e.g., ethernet, Linux cooked socket.
+%
+% The Time is a tuple in the same format as erlang:now/0, {MegaSecs,
+% Secs, MicroSecs} or microseconds.
+%
+% The Length corresponds to the actual packet length on the
+% wire. The captured packet may have been truncated. To get the
+% captured packet length, use byte_size(Packet).
+%
+% The Packet is a binary holding the captured data.
+%
+% Errors will be sent to the caller and the pcap filter will
+% be terminated:
+%
+%     {ewpcap_error, Ref, Error}
 -spec open(iodata(), open_options()) ->
     {ok, ewpcap_resource()}
     | {error, string() | enomem}.
@@ -147,6 +232,7 @@ open_2(Socket) ->
         Error -> Error
     end.
 
+% @doc Closes the pcap descriptor.
 -spec close(ewpcap_resource()) -> ok.
 close(#ewpcap_resource{res = Res}) -> pcap_close(Res).
 
@@ -155,6 +241,17 @@ close(#ewpcap_resource{res = Res}) -> pcap_close(Res).
     | {netmask, non_neg_integer()}
 ].
 
+% @doc Compile a PCAP filter and apply it to the PCAP descriptor.
+%
+% Since the library passes the filter string to pcap_compile(3PCAP)
+% directly, any bugs in pcap_compile() may cause the Erlang VM
+% to crash. Do not use filters from untrusted sources.
+%
+% Filters are limited to 8192 bytes by default since it may be
+% possible for very large filters to cause a stack overflow. For
+% example:
+%
+%     ewpcap:open(<<>>, [{filter, string:copies("ip and ", 50000) ++ "ip"}, {limit, -1}])
 -spec filter(ewpcap_resource(), iodata()) -> ok | {error, string() | enomem}.
 filter(Res, Filter) -> filter(Res, Filter, []).
 
@@ -173,6 +270,8 @@ filter(#ewpcap_resource{res = Res}, Filter, Options) when is_binary(Filter); is_
 -spec loop(ewpcap_resource()) -> ok | {error, files:posix()}.
 loop(#ewpcap_resource{res = Res}) -> pcap_loop(Res).
 
+% @doc Convenience function wrapping receive, returning the packet
+% contents.
 -spec read(ewpcap_resource()) -> {ok, binary()} | {error, string()}.
 read(Res) -> read(Res, infinity).
 
@@ -186,13 +285,28 @@ read(#ewpcap_resource{ref = Ref}, Timeout) ->
     after Timeout -> {error, eagain}
     end.
 
+% @doc Write the packet to the network. See pcap_sendpacket(3PCAP).
 -spec write(ewpcap_resource(), iodata()) -> ok | {error, string()}.
 write(#ewpcap_resource{res = Res}, Data) when is_list(Data); is_binary(Data) ->
     pcap_sendpacket(Res, Data).
 
+% @doc Returns the default device used by PCAP.
 -spec dev() -> {ok, string()} | {error, string()}.
 dev() -> pcap_lookupdev().
 
+% @doc Returns a list of interfaces. Ifname can be used as the first
+% parameter to open/1 and open/2.
+%
+% This function is modelled on inet:getifaddrs/0 but uses
+% pcap_findalldevs(3PCAP) to look up the interface attributes:
+%
+%     * getifaddrs/0 may return pseudo devices, such as the "any"
+%       device on Linux
+%
+%     * getifaddrs/0 will only return the list of devices that
+%       can be used with open/1 and open/2. An empty list ({ok,
+%       []}) may be returned if the user does not have permission
+%       to open any of the system interfaces
 -spec getifaddrs() ->
     {ok, [] | [{string(), [proplists:proplist()]}]}
     | {error, string()}.
@@ -202,6 +316,22 @@ getifaddrs() ->
         Error -> Error
     end.
 
+% @doc To use the return value as a record, include the header:
+%
+%     -include_lib("ewpcap/include/ewpcap.hrl").
+%
+% stats/1 returns statistics about dropped packets. See
+% pcap_stats(3PCAP) for details.
+%
+% The ewpcap_stat records contains these fields:
+%
+%     recv : number of packets received
+%
+%     drop : number of packets dropped due to insufficient buffer
+%
+%     ifdrop : number of packets dropped by the network interface
+%
+%     capt : always 0 (was number of packets received by the application (Win32 only))
 -spec stats(ewpcap_resource()) -> {ok, ewpcap_stat()} | {error, string()}.
 stats(#ewpcap_resource{res = Res}) -> pcap_stats(Res).
 

@@ -43,9 +43,9 @@ ewpcap requires beam to be running with root privileges:
 
 ## DATA TYPES
 
-    resource()
+    ewpcap_resource()
 
-        An record returned by open/0,1,2.
+        A record returned by open/0,1,2.
 
         The record contains 2 fields:
 
