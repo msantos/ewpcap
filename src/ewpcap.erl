@@ -197,8 +197,9 @@ open(<<>>, Options) ->
         Error -> Error
     end;
 open(Dev, Options) when is_list(Options) ->
-    Timeout = proplists:get_value(timeout, Options, immediate),
-    {Immediate0, To_ms0} =
+    To_ms0 = proplists:get_value(to_ms, Options, immediate),
+    Timeout = proplists:get_value(timeout, Options, To_ms0),
+    {Immediate0, To_ms} =
         case Timeout of
             % dummy value: timeout value is ignored
             immediate -> {true, 500};
@@ -207,7 +208,6 @@ open(Dev, Options) when is_list(Options) ->
         end,
     Snaplen = proplists:get_value(snaplen, Options, 65535),
     Promisc = bool(proplists:get_value(promisc, Options, false)),
-    To_ms = proplists:get_value(to_ms, Options, To_ms0),
     Filter = proplists:get_value(filter, Options, <<>>),
     Buffer = proplists:get_value(buffer, Options, 0),
     Monitor = bool(proplists:get_value(monitor, Options, false)),
