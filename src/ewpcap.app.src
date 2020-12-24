@@ -1,6 +1,6 @@
 {application, ewpcap, [
     {description, "PCAP NIF interface"},
-    {vsn, "1.0.2"},
+    {vsn, "1.1.0"},
     {applications, [kernel, stdlib]},
 
     {licenses, ["BSD-3"]},
