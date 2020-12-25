@@ -1,4 +1,5 @@
 %%% @copyright 2012-2020 Michael Santos <michael.santos@gmail.com>
+
 %%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
@@ -112,7 +113,7 @@ pcap_stats(_) -> erlang:nif_error(not_implemented).
 %
 %     * no filter (all packets are received)
 %
-% See `open/2`.
+% See open/2.
 -spec open() -> {ok, ewpcap_resource()} | {error, string() | enomem}.
 open() -> open(<<>>, []).
 
@@ -131,7 +132,7 @@ open() -> open(<<>>, []).
 %
 %     * no filter (all packets are received)
 %
-% See `open/2`.
+% See open/2.
 -spec open(iodata()) -> {ok, ewpcap_resource()} | {error, string() | enomem}.
 open(Dev) -> open(Dev, []).
 
@@ -142,7 +143,7 @@ open(Dev) -> open(Dev, []).
 % be shut down and all resources associated with the socket will
 % be freed. See also close/1.
 %
-% Dev is the name of the network device. If an empty binary (<<>>)
+% Dev is the name of the network device. If an empty binary (`<<>>')
 % is passed in, pcap will select a default interface.
 %
 % If an error occurs, the PCAP string describing the error is
@@ -251,7 +252,9 @@ close(#ewpcap_resource{res = Res}) -> pcap_close(Res).
 % possible for very large filters to cause a stack overflow. For
 % example:
 %
-%     ewpcap:open(<<>>, [{filter, string:copies("ip and ", 50000) ++ "ip"}, {limit, -1}])
+% ```
+% ewpcap:open(<<>>, [{filter, string:copies("ip and ", 50000) ++ "ip"}, {limit, -1}])
+% '''
 -spec filter(ewpcap_resource(), iodata()) -> ok | {error, string() | enomem}.
 filter(Res, Filter) -> filter(Res, Filter, []).
 
