@@ -31,6 +31,8 @@
 #include <errno.h>
 #include <pcap.h>
 #include <string.h>
+#include <stdint.h>
+
 
 #if defined(__SVR4) && defined(__sun)
 #define u_int8_t uint8_t
