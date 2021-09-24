@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020 Michael Santos <michael.santos@gmail.com>. All
+/* Copyright (c) 2012-2021 Michael Santos <michael.santos@gmail.com>. All
  * rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,8 @@
  */
 #include <errno.h>
 #include <pcap.h>
-#include <string.h>
 #include <stdint.h>
-
+#include <string.h>
 
 #if defined(__SVR4) && defined(__sun)
 #define u_int8_t uint8_t
@@ -634,6 +633,16 @@ static ERL_NIF_TERM nif_pcap_stats(ErlNifEnv *env, int argc,
                                            enif_make_uint(env, 0)));
 }
 
+static ERL_NIF_TERM nif_dirty_scheduler_enabled(ErlNifEnv *env, int argc,
+                                                const ERL_NIF_TERM argv[]) {
+
+#ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
+  return enif_make_atom(env, "false");
+#else
+  return enif_make_atom(env, "true");
+#endif
+}
+
 void ewpcap_free(ErlNifEnv *env, void *obj) {
   EWPCAP_STATE *ep = obj;
 
@@ -659,23 +668,20 @@ void ewpcap_free(ErlNifEnv *env, void *obj) {
   ep->p = NULL;
 }
 
+static ErlNifFunc nif_funcs[] = {
+    {"pcap_compile", 4, nif_pcap_compile},
+    {"pcap_open_live", 8, nif_pcap_open_live},
 #ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
-#pragma message "Dirty scheduler support disabled"
-#endif
-
-static ErlNifFunc nif_funcs[] = {{"pcap_compile", 4, nif_pcap_compile},
-                                 {"pcap_open_live", 8, nif_pcap_open_live},
-#ifdef EWPCAP_DISABLE_DIRTY_SCHEDULER
-                                 {"pcap_close", 1, nif_pcap_close},
-                                 {"pcap_findalldevs", 0, nif_pcap_findalldevs},
+    {"pcap_close", 1, nif_pcap_close},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs},
 #else
-                                 {"pcap_close", 1, nif_pcap_close,
-                                  ERL_NIF_DIRTY_JOB_CPU_BOUND},
-                                 {"pcap_findalldevs", 0, nif_pcap_findalldevs,
-                                  ERL_NIF_DIRTY_JOB_CPU_BOUND},
+    {"pcap_close", 1, nif_pcap_close, ERL_NIF_DIRTY_JOB_CPU_BOUND},
+    {"pcap_findalldevs", 0, nif_pcap_findalldevs, ERL_NIF_DIRTY_JOB_CPU_BOUND},
 #endif
-                                 {"pcap_loop", 1, nif_pcap_loop},
-                                 {"pcap_sendpacket", 2, nif_pcap_sendpacket},
-                                 {"pcap_stats", 1, nif_pcap_stats}};
+    {"pcap_loop", 1, nif_pcap_loop},
+    {"pcap_sendpacket", 2, nif_pcap_sendpacket},
+    {"pcap_stats", 1, nif_pcap_stats},
+
+    {"dirty_scheduler_enabled", 0, nif_dirty_scheduler_enabled}};
 
 ERL_NIF_INIT(ewpcap, nif_funcs, load, NULL, NULL, unload)

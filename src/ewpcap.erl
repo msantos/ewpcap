@@ -1,4 +1,4 @@
-%%% @copyright 2012-2020 Michael Santos <michael.santos@gmail.com>
+%%% @copyright 2012-2021 Michael Santos <michael.santos@gmail.com>
 
 %%% All rights reserved.
 %%%
@@ -40,7 +40,9 @@
     write/2,
     getifaddrs/0,
     dev/0,
-    stats/1
+    stats/1,
+
+    dirty_scheduler_enabled/0
 ]).
 
 -define(PCAP_NETMASK_UNKNOWN, 4294967295).
@@ -80,6 +82,10 @@ pcap_loop(_) -> erlang:nif_error(not_implemented).
 pcap_sendpacket(_, _) -> erlang:nif_error(not_implemented).
 
 pcap_stats(_) -> erlang:nif_error(not_implemented).
+
+% @doc Indicates whether ewpcap is using the dirty scheduler
+-spec dirty_scheduler_enabled() -> boolean().
+dirty_scheduler_enabled() -> erlang:nif_error(not_implemented).
 
 %%--------------------------------------------------------------------
 %%% API
