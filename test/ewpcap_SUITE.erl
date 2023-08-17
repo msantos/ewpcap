@@ -1,4 +1,4 @@
-%%% @copyright 2012-2020 Michael Santos <michael.santos@gmail.com>
+%%% @copyright 2012-2023 Michael Santos <michael.santos@gmail.com>
 %%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
@@ -98,7 +98,7 @@ getifaddrs(_Config) ->
         _ ->
             {skip,
                 "results of ewpcap:getifaddrs/0 and inet:getifaddrs/0 "
-                "may differ on this platorm"}
+                "may differ on this platform"}
     end.
 
 open_error(_Config) ->
