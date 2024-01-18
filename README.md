@@ -1,3 +1,6 @@
+[![Package Version](https://img.shields.io/hexpm/v/ewpcap)](https://hex.pm/packages/ewpcap)
+[![Hex Docs](https://img.shields.io/badge/hex-docs)](https://hexdocs.pm/ewpcap/)
+
 ewpcap is a native Erlang interface to PCAP that can be used for reading
 and writing packets from the network.
 
